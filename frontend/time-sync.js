@@ -3,8 +3,6 @@
  * Synchronizes client time with server time
  */
 
-const API_BASE_URL = "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
-
 // Helper function to make API requests with ngrok headers
 // Use existing apiFetch if available, otherwise create one
 async function apiFetch(url, options = {}) {
@@ -47,7 +45,8 @@ async function syncTime() {
   
   try {
     const clientTimeBefore = Date.now();
-    const response = await apiFetch(`${API_BASE_URL}/api/time`);
+    const apiUrl = getApiBaseUrl();
+    const response = await apiFetch(`${apiUrl}/api/time`);
     
     if (!response.ok) {
       throw new Error("Failed to get server time");
