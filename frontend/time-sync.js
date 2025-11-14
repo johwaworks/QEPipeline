@@ -3,6 +3,15 @@
  * Synchronizes client time with server time
  */
 
+// Get API_BASE_URL from window or use default
+function getApiBaseUrl() {
+  if (window.API_BASE_URL) {
+    return window.API_BASE_URL;
+  }
+  // Fallback to default if not set
+  return "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
+}
+
 // Helper function to make API requests with ngrok headers
 // Use existing apiFetch if available, otherwise create one
 async function apiFetch(url, options = {}) {
