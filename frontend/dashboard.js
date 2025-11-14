@@ -66,7 +66,7 @@ async function loadProjects(username) {
       <div class="project-item-simple" data-project-id="${project._id}">
         <div class="project-info-left">
           <div class="project-name-simple">${escapeHtml(project.name)}</div>
-          ${project.director ? `<div class="project-director-simple">${escapeHtml(project.director)} 감독님</div>` : ''}
+          ${project.director ? `<div class="project-director-simple">${escapeHtml(project.director)} 감독??/div>` : ''}
         </div>
         <div class="project-status-simple status-badge ${statusClass}">${escapeHtml(status)}</div>
       </div>
@@ -1004,7 +1004,7 @@ async function loadPartnerRequests(username) {
             ${role}
           </div>
           <div class="partner-request-actions">
-            <button class="accept-partner-btn" data-requester-username="${request.username}" title="Accept">✓</button>
+            <button class="accept-partner-btn" data-requester-username="${request.username}" title="Accept">??/button>
             <button class="reject-partner-btn" data-requester-username="${request.username}" title="Reject">×</button>
           </div>
         </div>

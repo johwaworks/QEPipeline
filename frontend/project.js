@@ -52,7 +52,7 @@ async function loadProject(projectId) {
     const directorEl = document.getElementById("project-director");
     if (directorEl && currentProject) {
       if (currentProject.director && currentProject.director.trim()) {
-        directorEl.textContent = `${currentProject.director} ê°ë…ë‹˜`;
+        directorEl.textContent = `${currentProject.director} ê°ë…??;
         directorEl.style.display = "";
       } else {
         directorEl.style.display = "none";
@@ -1134,17 +1134,17 @@ async function loadProjectFiles() {
 
 // Get file icon based on file type
 function getFileIcon(fileType) {
-  if (!fileType) return "ğŸ“„";
+  if (!fileType) return "?“„";
   
-  if (fileType.startsWith("video/")) return "ğŸ¬";
-  if (fileType.startsWith("audio/")) return "ğŸµ";
-  if (fileType.startsWith("image/")) return "ğŸ–¼ï¸";
-  if (fileType.includes("pdf")) return "ğŸ“•";
-  if (fileType.includes("word") || fileType.includes("document")) return "ğŸ“";
-  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return "ğŸ“Š";
-  if (fileType.includes("zip") || fileType.includes("archive")) return "ğŸ“¦";
+  if (fileType.startsWith("video/")) return "?¬";
+  if (fileType.startsWith("audio/")) return "?µ";
+  if (fileType.startsWith("image/")) return "?–¼ï¸?;
+  if (fileType.includes("pdf")) return "?“•";
+  if (fileType.includes("word") || fileType.includes("document")) return "?“";
+  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return "?“Š";
+  if (fileType.includes("zip") || fileType.includes("archive")) return "?“¦";
   
-  return "ğŸ“„";
+  return "?“„";
 }
 
 // Format file size

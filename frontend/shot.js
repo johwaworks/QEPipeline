@@ -60,7 +60,7 @@ async function loadShot(shotId) {
     const backLink = document.querySelector(".back-link");
     if (backLink && currentProjectId) {
       backLink.href = `project.html?id=${currentProjectId}`;
-      backLink.textContent = "â† Back to Project";
+      backLink.textContent = "??Back to Project";
     }
     
     // Update page title
@@ -1606,17 +1606,17 @@ async function loadShotFiles() {
 
 // Get file icon based on file type
 function getFileIcon(fileType) {
-  if (!fileType) return "ğŸ“„";
+  if (!fileType) return "?“„";
   
-  if (fileType.startsWith("video/")) return "ğŸ¬";
-  if (fileType.startsWith("audio/")) return "ğŸµ";
-  if (fileType.startsWith("image/")) return "ğŸ–¼ï¸";
-  if (fileType.includes("pdf")) return "ğŸ“•";
-  if (fileType.includes("word") || fileType.includes("document")) return "ğŸ“";
-  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return "ğŸ“Š";
-  if (fileType.includes("zip") || fileType.includes("archive")) return "ğŸ“¦";
+  if (fileType.startsWith("video/")) return "?¬";
+  if (fileType.startsWith("audio/")) return "?µ";
+  if (fileType.startsWith("image/")) return "?–¼ï¸?;
+  if (fileType.includes("pdf")) return "?“•";
+  if (fileType.includes("word") || fileType.includes("document")) return "?“";
+  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return "?“Š";
+  if (fileType.includes("zip") || fileType.includes("archive")) return "?“¦";
   
-  return "ğŸ“„";
+  return "?“„";
 }
 
 // Format file size
@@ -2013,7 +2013,7 @@ function renderPartSelector(workersAssignment) {
       // Update arrow
       const arrow = button.querySelector(".part-selector-button-arrow");
       if (arrow) {
-        arrow.textContent = isVisible ? "â–¼" : "â–²";
+        arrow.textContent = isVisible ? "?? : "??;
       }
     });
     
@@ -2027,7 +2027,7 @@ function renderPartSelector(workersAssignment) {
           dropdown.style.display = "none";
           const arrow = button.querySelector(".part-selector-button-arrow");
           if (arrow) {
-            arrow.textContent = "â–¼";
+            arrow.textContent = "??;
           }
         }
       });
@@ -2424,12 +2424,12 @@ function setupWorkersAssignmentToggle() {
     if (isVisible) {
       content.style.display = "none";
       if (icon) {
-        icon.textContent = "â–¶";
+        icon.textContent = "??;
       }
     } else {
       content.style.display = "block";
       if (icon) {
-        icon.textContent = "â–¼";
+        icon.textContent = "??;
       }
     }
   });
