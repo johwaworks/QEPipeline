@@ -421,9 +421,14 @@ async function checkAdminStatus(username) {
 
 // Initialize dashboard
 async function initDashboard() {
-  // Initialize time synchronization
+  // Initialize time synchronization (non-blocking)
   if (window.TimeSync) {
-    await window.TimeSync.initTimeSync();
+    try {
+      await window.TimeSync.initTimeSync();
+    } catch (error) {
+      console.error("Time sync initialization failed, continuing without sync:", error);
+      // Continue even if time sync fails
+    }
   }
   const username = checkAuth();
   if (!username) return;

@@ -162,15 +162,28 @@ function getTimeAgo(date) {
  * @param {number} syncInterval - Sync interval in milliseconds (default: 5 minutes)
  */
 async function initTimeSync(syncInterval = 5 * 60 * 1000) {
-  // Initial sync
-  await syncTime();
-  
-  // Periodic sync
-  setInterval(async () => {
-    await syncTime();
-  }, syncInterval);
-  
-  console.log("Time synchronization initialized");
+  try {
+    // Initial sync (non-blocking)
+    syncTime().catch(error => {
+      console.error("Initial time sync failed:", error);
+      // Continue even if initial sync fails
+    });
+    
+    // Periodic sync
+    setInterval(async () => {
+      try {
+        await syncTime();
+      } catch (error) {
+        console.error("Periodic time sync failed:", error);
+        // Continue even if periodic sync fails
+      }
+    }, syncInterval);
+    
+    console.log("Time synchronization initialized");
+  } catch (error) {
+    console.error("Time sync initialization error:", error);
+    // Don't throw, allow page to continue loading
+  }
 }
 
 /**
