@@ -4,12 +4,19 @@ Configuration file for QEPipeline backend
 import os
 
 # MongoDB Configuration
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb+srv://johwa:UDWScW728969d9Q7@cluster0.rrxr0hw.mongodb.net/?retryWrites=true&w=majority")
+# IMPORTANT: Set MONGODB_URI as an environment variable for security
+# Do not hardcode credentials in source code
+MONGODB_URI = os.getenv("MONGODB_URI")
+if not MONGODB_URI:
+    raise ValueError("MONGODB_URI environment variable is not set. Please set it before running the application.")
+
 MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "qepipeline")
 
 # Admin Configuration
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "NSRM0902@")  # Change this in production!
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+if not ADMIN_PASSWORD:
+    raise ValueError("ADMIN_PASSWORD environment variable is not set. Please set it before running the application.")
 
 # Flask Configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
