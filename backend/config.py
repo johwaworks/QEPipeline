@@ -19,5 +19,7 @@ if not ADMIN_PASSWORD:
     raise ValueError("ADMIN_PASSWORD environment variable is not set. Please set it before running the application.")
 
 # Flask Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable is not set. Please set it before running the application.")
 
