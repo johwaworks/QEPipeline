@@ -93,11 +93,25 @@
   flex-wrap: wrap;
 }
 
+.project-director-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .project-director {
   font-size: 14px;
   font-weight: 500;
   color: #cccccc;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.project-deadline {
+  font-size: 14px;
+  font-weight: 500;
+  color: #999999;
   letter-spacing: 0.5px;
 }
 

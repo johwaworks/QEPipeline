@@ -64,7 +64,7 @@ async function loadProject(projectId) {
       titleEl.textContent = currentProject.name || "Project";
     }
     
-    // Update director and production status
+    // Update director and deadline
     const directorEl = document.getElementById("project-director");
     if (directorEl && currentProject) {
       if (currentProject.director && currentProject.director.trim()) {
@@ -72,6 +72,24 @@ async function loadProject(projectId) {
         directorEl.style.display = "";
       } else {
         directorEl.style.display = "none";
+      }
+    }
+    
+    // Update deadline
+    const deadlineEl = document.getElementById("project-deadline");
+    if (deadlineEl && currentProject) {
+      if (currentProject.deadline && currentProject.deadline.trim()) {
+        // Format deadline date
+        const deadlineDate = new Date(currentProject.deadline);
+        const formattedDate = deadlineDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+        deadlineEl.textContent = `Deadline: ${formattedDate}`;
+        deadlineEl.style.display = "";
+      } else {
+        deadlineEl.style.display = "none";
       }
     }
     
