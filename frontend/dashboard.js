@@ -1,4 +1,6 @@
 const API_BASE_URL = "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
+// Make API_BASE_URL available globally for time-sync.js
+window.API_BASE_URL = API_BASE_URL;
 
 // Helper function to make API requests with ngrok headers
 async function apiFetch(url, options = {}) {
