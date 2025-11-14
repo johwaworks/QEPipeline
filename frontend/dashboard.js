@@ -770,7 +770,18 @@ async function loadPartners(username) {
             </div>
             ${role}
           </div>
-          <button class="remove-partner-btn" data-partner-username="${partner.username}" title="Remove partner" ${isCurrentUser ? 'style="display: none;"' : ''}>×</button>
+          <div class="partner-actions">
+            ${!isCurrentUser ? `
+              <button class="user-context-menu-btn" data-username="${partner.username}" data-is-partner="true" title="More actions">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="1"></circle>
+                  <circle cx="12" cy="5" r="1"></circle>
+                  <circle cx="12" cy="19" r="1"></circle>
+                </svg>
+              </button>
+            ` : ''}
+            <button class="remove-partner-btn" data-partner-username="${partner.username}" title="Remove partner" ${isCurrentUser ? 'style="display: none;"' : ''}>×</button>
+          </div>
         </div>
       `;
     }).join('');
@@ -783,6 +794,16 @@ async function loadPartners(username) {
         if (partnerUsername && confirm(`Remove ${partnerUsername} from partners?`)) {
           await removePartner(username, partnerUsername);
         }
+      });
+    });
+    
+    // Add context menu event listeners for partners
+    document.querySelectorAll('.user-context-menu-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const partnerUsername = btn.getAttribute('data-username');
+        const isPartner = btn.getAttribute('data-is-partner') === 'true';
+        await showUserContextMenu(e.target.closest('.partner-item'), partnerUsername, isPartner);
       });
     });
     

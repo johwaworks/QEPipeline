@@ -90,21 +90,45 @@ async function syncTime() {
 }
 
 /**
- * Get synchronized time (server time)
- * @returns {Date} Synchronized date object
+ * Get synchronized time (server time) in KST
+ * @returns {Date} Synchronized date object (server time in KST)
  */
 function getSyncedTime() {
   const clientTime = Date.now();
   const syncedTime = clientTime + timeSyncState.offset;
-  return new Date(syncedTime);
+  // Server time is in UTC, convert to KST (UTC+9)
+  const kstTime = syncedTime + (9 * 60 * 60 * 1000); // Add 9 hours for KST
+  return new Date(kstTime);
 }
 
 /**
- * Get synchronized timestamp
- * @returns {number} Synchronized timestamp in milliseconds
+ * Get synchronized timestamp in KST
+ * @returns {number} Synchronized timestamp in milliseconds (KST)
  */
 function getSyncedTimestamp() {
-  return Date.now() + timeSyncState.offset;
+  const synced = Date.now() + timeSyncState.offset;
+  // Convert UTC to KST (UTC+9)
+  return synced + (9 * 60 * 60 * 1000);
+}
+
+/**
+ * Convert server UTC time to KST
+ * @param {Date|string|number} serverTime - Server time (UTC)
+ * @returns {Date} Date object in KST
+ */
+function serverTimeToKST(serverTime) {
+  let dateObj;
+  if (serverTime instanceof Date) {
+    dateObj = serverTime;
+  } else if (typeof serverTime === 'string' || typeof serverTime === 'number') {
+    dateObj = new Date(serverTime);
+  } else {
+    dateObj = new Date();
+  }
+  
+  // Server time is UTC, convert to KST (UTC+9)
+  const kstTime = dateObj.getTime() + (9 * 60 * 60 * 1000);
+  return new Date(kstTime);
 }
 
 /**
@@ -121,21 +145,33 @@ function formatSyncedDate(date, options = {}) {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    timeZoneName: 'short'
+    timeZone: 'Asia/Seoul' // Default to KST
+    // Don't include timeZoneName by default - only add if explicitly requested
   };
   
-  const finalOptions = { ...defaultOptions, ...options };
+  // Merge options, but only add timeZoneName if explicitly provided
+  const finalOptions = { ...defaultOptions };
+  if (options.timeZoneName !== undefined) {
+    finalOptions.timeZoneName = options.timeZoneName;
+  }
+  // Add other options
+  Object.assign(finalOptions, options);
   
   let dateObj;
   if (date instanceof Date) {
     dateObj = date;
   } else if (typeof date === 'string' || typeof date === 'number') {
-    dateObj = new Date(date);
+    // Server time is UTC, convert to KST
+    dateObj = serverTimeToKST(date);
   } else {
-    dateObj = getSyncedTime();
+    dateObj = getSyncedTime(); // Already in KST
   }
   
-  return dateObj.toLocaleString('en-US', finalOptions);
+  // Format in Korean locale with KST timezone
+  const formatted = dateObj.toLocaleString('ko-KR', finalOptions);
+  
+  // Replace GMT+9 with KST if it appears
+  return formatted.replace(/GMT\+9/g, 'KST').replace(/GMT\+09/g, 'KST');
 }
 
 /**
@@ -144,8 +180,9 @@ function formatSyncedDate(date, options = {}) {
  * @returns {string} Relative time string (e.g., "2 minutes ago")
  */
 function getTimeAgo(date) {
-  const now = getSyncedTime();
-  const then = new Date(date);
+  const now = getSyncedTime(); // Already in KST
+  // Convert server time (UTC) to KST for comparison
+  const then = serverTimeToKST(date);
   const diffMs = now - then;
   const diffSeconds = Math.floor(diffMs / 1000);
   const diffMinutes = Math.floor(diffSeconds / 60);
@@ -161,7 +198,7 @@ function getTimeAgo(date) {
   } else if (diffDays < 7) {
     return diffDays === 1 ? "1 day ago" : `${diffDays} days ago`;
   } else {
-    return formatSyncedDate(then);
+    return formatSyncedDate(then, { timeZone: 'Asia/Seoul' });
   }
 }
 
@@ -223,6 +260,7 @@ if (typeof window !== 'undefined') {
     getSyncedTimestamp,
     formatSyncedDate,
     getTimeAgo,
+    serverTimeToKST,
     initTimeSync,
     isTimeSynced,
     getSyncStatus

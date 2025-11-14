@@ -60,16 +60,26 @@ async function loadShot(shotId) {
     
     const result = await response.json();
     currentShot = result.shot;
+    currentShotId = shotId;
     
     if (!currentShot) {
       throw new Error("Shot data not found");
     }
     
-    // Store project ID for navigation
+    // Store project ID for navigation and chat
     if (currentShot.project_id) {
       currentProjectId = currentShot.project_id;
     } else if (currentShot.project && currentShot.project._id) {
       currentProjectId = currentShot.project._id;
+    }
+    
+    // Update chat context - set on window object for chat.js to access
+    window.currentShotId = currentShotId;
+    window.currentProjectId = currentProjectId;
+    
+    // Update chat context
+    if (window.updateChatContext) {
+      window.updateChatContext(currentProjectId, currentShotId);
     }
     
     // Update back link to project page
@@ -1739,6 +1749,7 @@ const PART_TYPES = [
 let currentProject = null;
 let projectWorkers = []; // List of all workers in the project
 let selectedParts = new Set(); // Set of enabled part keys
+let selectedWorkers = new Set(); // Set of workers participating in this shot
 let dropdownClickListenerAttached = false; // Flag to prevent duplicate listeners
 
 // Load project information to get workers
@@ -1934,8 +1945,23 @@ async function loadWorkersAssignment() {
       }
     });
     
-    // Render part selector first
+    // Initialize selected workers from shot (if exists)
+    selectedWorkers.clear();
+    const shotWorkers = shot.shot_workers || [];
+    shotWorkers.forEach(workerUsername => {
+      selectedWorkers.add(workerUsername);
+    });
+    
+    // If no shot_workers specified, include all project workers by default
+    if (selectedWorkers.size === 0 && projectWorkers.length > 0) {
+      projectWorkers.forEach(worker => {
+        selectedWorkers.add(worker.username);
+      });
+    }
+    
+    // Render selectors first
     renderPartSelector(workersAssignment);
+    renderWorkerSelector(workersAssignment);
     
     // Render workers assignment UI
     renderWorkersAssignment(workersAssignment);
@@ -2037,17 +2063,147 @@ function renderPartSelector(workersAssignment) {
     if (!dropdownClickListenerAttached) {
       dropdownClickListenerAttached = true;
       document.addEventListener("click", (e) => {
-        const button = document.getElementById("part-selector-button");
-        const dropdown = document.getElementById("part-selector-dropdown");
-        if (button && dropdown && !button.contains(e.target) && !dropdown.contains(e.target)) {
-          dropdown.style.display = "none";
-          const arrow = button.querySelector(".part-selector-button-arrow");
+        const partButton = document.getElementById("part-selector-button");
+        const partDropdown = document.getElementById("part-selector-dropdown");
+        const workerButton = document.getElementById("worker-selector-button");
+        const workerDropdown = document.getElementById("worker-selector-dropdown");
+        
+        if (partButton && partDropdown && !partButton.contains(e.target) && !partDropdown.contains(e.target)) {
+          partDropdown.style.display = "none";
+          const arrow = partButton.querySelector(".part-selector-button-arrow");
+          if (arrow) {
+            arrow.textContent = "▼";
+          }
+        }
+        
+        if (workerButton && workerDropdown && !workerButton.contains(e.target) && !workerDropdown.contains(e.target)) {
+          workerDropdown.style.display = "none";
+          const arrow = workerButton.querySelector(".part-selector-button-arrow");
           if (arrow) {
             arrow.textContent = "▼";
           }
         }
       });
     }
+  }
+}
+
+// Render worker selector list
+function renderWorkerSelector(workersAssignment) {
+  const selectorList = document.getElementById("worker-selector-list");
+  if (!selectorList) {
+    return;
+  }
+  
+  if (projectWorkers.length === 0) {
+    selectorList.innerHTML = '<div class="empty-state">No workers in this project.</div>';
+    return;
+  }
+  
+  selectorList.innerHTML = "";
+  
+  projectWorkers.forEach(worker => {
+    const workerUsername = worker.username;
+    const isSelected = selectedWorkers.has(workerUsername);
+    
+    const workerItem = document.createElement("label");
+    workerItem.className = "part-selector-item";
+    
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = workerUsername;
+    checkbox.checked = isSelected;
+    checkbox.setAttribute("data-worker", workerUsername);
+    checkbox.addEventListener("change", (e) => {
+      e.stopPropagation(); // Prevent dropdown from closing
+      const checked = e.target.checked;
+      if (checked) {
+        selectedWorkers.add(workerUsername);
+      } else {
+        selectedWorkers.delete(workerUsername);
+      }
+      // Update workers assignment data and save
+      saveShotWorkers();
+      // Re-render assignment table and summary
+      renderWorkersAssignment(workersAssignment);
+      renderAssignmentSummary(workersAssignment);
+      renderTaskDescriptions(workersAssignment);
+      // Update button text
+      updateWorkerSelectorButton();
+    });
+    
+    const workerLabel = document.createElement("span");
+    workerLabel.className = "part-selector-label-text";
+    workerLabel.textContent = worker.name || worker.username;
+    
+    workerItem.appendChild(checkbox);
+    workerItem.appendChild(workerLabel);
+    
+    selectorList.appendChild(workerItem);
+  });
+  
+  // Update button text
+  updateWorkerSelectorButton();
+  
+  // Setup button click handler (only once)
+  const button = document.getElementById("worker-selector-button");
+  const dropdown = document.getElementById("worker-selector-dropdown");
+  
+  if (button && dropdown && !button.hasAttribute("data-listener-attached")) {
+    button.setAttribute("data-listener-attached", "true");
+    
+    button.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isVisible = dropdown.style.display !== "none";
+      dropdown.style.display = isVisible ? "none" : "block";
+      
+      // Update arrow
+      const arrow = button.querySelector(".part-selector-button-arrow");
+      if (arrow) {
+        arrow.textContent = isVisible ? "▼" : "▲";
+      }
+    });
+  }
+}
+
+// Update worker selector button text
+function updateWorkerSelectorButton() {
+  const button = document.getElementById("worker-selector-button");
+  if (!button) return;
+  
+  const buttonText = button.querySelector(".part-selector-button-text");
+  if (!buttonText) return;
+  
+  const selectedCount = selectedWorkers.size;
+  if (selectedCount === 0) {
+    buttonText.textContent = "Select Workers";
+  } else if (selectedCount === projectWorkers.length) {
+    buttonText.textContent = "All Workers Selected";
+  } else {
+    buttonText.textContent = `${selectedCount} Worker${selectedCount > 1 ? 's' : ''} Selected`;
+  }
+}
+
+// Save shot workers to backend
+async function saveShotWorkers() {
+  if (!currentShotId) {
+    return;
+  }
+  
+  try {
+    const shotWorkers = Array.from(selectedWorkers);
+    const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/workers`, {
+      method: "PUT",
+      body: JSON.stringify({
+        shot_workers: shotWorkers
+      })
+    });
+    
+    if (!response.ok) {
+      console.error("Failed to save shot workers");
+    }
+  } catch (error) {
+    console.error("Error saving shot workers:", error);
   }
 }
 
@@ -2121,10 +2277,23 @@ function renderWorkersAssignment(workersAssignment) {
   thead.appendChild(headerRow);
   table.appendChild(thead);
   
-  // Create body with worker rows
+  // Create body with worker rows (only show selected workers)
   const tbody = document.createElement("tbody");
   
-  projectWorkers.forEach(worker => {
+  const visibleWorkers = projectWorkers.filter(worker => selectedWorkers.has(worker.username));
+  
+  if (visibleWorkers.length === 0) {
+    const emptyRow = document.createElement("tr");
+    emptyRow.className = "workers-assignment-row";
+    const emptyCell = document.createElement("td");
+    emptyCell.className = "workers-assignment-empty-cell";
+    emptyCell.colSpan = selectedParts.size + 1; // +1 for worker column
+    emptyCell.textContent = "No workers selected. Select workers to assign parts.";
+    emptyRow.appendChild(emptyCell);
+    tbody.appendChild(emptyRow);
+  }
+  
+  visibleWorkers.forEach(worker => {
     const row = document.createElement("tr");
     row.className = "workers-assignment-row";
     
@@ -2200,16 +2369,19 @@ function renderAssignmentSummary(workersAssignment) {
     return;
   }
   
-  if (projectWorkers.length === 0) {
-    container.innerHTML = '<div class="empty-state">No workers in this project.</div>';
+  // Filter to only selected workers
+  const visibleWorkers = projectWorkers.filter(worker => selectedWorkers.has(worker.username));
+  
+  if (visibleWorkers.length === 0) {
+    container.innerHTML = '<div class="empty-state">No workers selected. Select workers to see assignment summary.</div>';
     return;
   }
   
   // Build worker to parts mapping
   const workerPartsMap = new Map();
   
-  // Initialize all workers with empty arrays
-  projectWorkers.forEach(worker => {
+  // Initialize selected workers with empty arrays
+  visibleWorkers.forEach(worker => {
     workerPartsMap.set(worker.username, []);
   });
   
@@ -2232,8 +2404,8 @@ function renderAssignmentSummary(workersAssignment) {
   const summaryList = document.createElement("div");
   summaryList.className = "assignment-summary-list";
   
-  // Sort workers by name
-  const sortedWorkers = [...projectWorkers].sort((a, b) => {
+  // Sort visible workers by name
+  const sortedWorkers = [...visibleWorkers].sort((a, b) => {
     const nameA = (a.name || a.username).toLowerCase();
     const nameB = (b.name || b.username).toLowerCase();
     return nameA.localeCompare(nameB);
@@ -2290,16 +2462,19 @@ function renderTaskDescriptions(workersAssignment) {
     return;
   }
   
-  if (projectWorkers.length === 0) {
-    container.innerHTML = '<div class="empty-state">No workers in this project.</div>';
+  // Filter to only selected workers
+  const visibleWorkers = projectWorkers.filter(worker => selectedWorkers.has(worker.username));
+  
+  if (visibleWorkers.length === 0) {
+    container.innerHTML = '<div class="empty-state">No workers selected. Select workers to see task descriptions.</div>';
     return;
   }
   
   // Build worker to parts mapping (same as summary)
   const workerPartsMap = new Map();
   
-  // Initialize all workers with empty arrays
-  projectWorkers.forEach(worker => {
+  // Initialize selected workers with empty arrays
+  visibleWorkers.forEach(worker => {
     workerPartsMap.set(worker.username, []);
   });
   
@@ -2322,8 +2497,8 @@ function renderTaskDescriptions(workersAssignment) {
   const summaryList = document.createElement("div");
   summaryList.className = "assignment-summary-list";
   
-  // Sort workers by name (same order as summary)
-  const sortedWorkers = [...projectWorkers].sort((a, b) => {
+  // Sort visible workers by name (same order as summary)
+  const sortedWorkers = [...visibleWorkers].sort((a, b) => {
     const nameA = (a.name || a.username).toLowerCase();
     const nameB = (b.name || b.username).toLowerCase();
     return nameA.localeCompare(nameB);
@@ -2575,18 +2750,181 @@ async function saveWorkersAssignment() {
   }
 }
 
-// Run when page loads
+// Display username
+function displayUserInfo(username) {
+  const usernameDisplay = document.getElementById("username-display");
+  if (usernameDisplay) {
+    usernameDisplay.textContent = username;
+  }
+}
+
+// Logout function
+function handleLogout() {
+  localStorage.removeItem("qepipeline_logged_in");
+  localStorage.removeItem("qepipeline_username");
+  window.location.href = "index.html";
+}
+
+// Load notifications
+async function loadNotifications(username) {
+  try {
+    const response = await apiFetch(`${API_BASE_URL}/api/partner-requests?username=${encodeURIComponent(username)}`);
+    
+    if (!response.ok) {
+      throw new Error("Failed to load notifications");
+    }
+    
+    const result = await response.json();
+    const requests = result.requests || [];
+    
+    // Update badge
+    const badge = document.getElementById("notification-badge");
+    if (badge) {
+      if (requests.length > 0) {
+        badge.textContent = requests.length > 99 ? "99+" : requests.length;
+        badge.style.display = "block";
+      } else {
+        badge.style.display = "none";
+      }
+    }
+    
+    // Update notification list
+    const notificationList = document.getElementById("notification-list");
+    if (notificationList) {
+      if (requests.length === 0) {
+        notificationList.innerHTML = '<div class="empty-notifications">No new notifications</div>';
+      } else {
+        notificationList.innerHTML = requests.map(request => {
+          const fromUsername = request.from_username || request.from;
+          return `
+            <div class="notification-item">
+              <div class="notification-content">
+                <strong>${escapeHtml(fromUsername)}</strong> wants to be your partner
+              </div>
+              <div class="notification-actions">
+                <button class="notification-action-btn accept" onclick="handlePartnerRequest('${fromUsername}', 'accept')">Accept</button>
+                <button class="notification-action-btn reject" onclick="handlePartnerRequest('${fromUsername}', 'reject')">Reject</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+    
+  } catch (error) {
+    console.error("Error loading notifications:", error);
+    const notificationList = document.getElementById("notification-list");
+    if (notificationList) {
+      notificationList.innerHTML = '<div class="empty-notifications">Failed to load notifications</div>';
+    }
+  }
+}
+
+// Handle partner request (accept/reject)
+async function handlePartnerRequest(fromUsername, action) {
+  try {
+    const username = localStorage.getItem("qepipeline_username");
+    if (!username) return;
+    
+    const response = await apiFetch(`${API_BASE_URL}/api/partner-request/${action}`, {
+      method: "POST",
+      body: JSON.stringify({
+        from_username: fromUsername,
+        to_username: username
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error("Failed to handle partner request");
+    }
+    
+    // Reload notifications
+    loadNotifications(username);
+    
+  } catch (error) {
+    console.error("Error handling partner request:", error);
+    alert("Failed to handle partner request. Please try again.");
+  }
+}
+
+// Open notification dropdown
+function openNotificationDropdown(username) {
+  const dropdown = document.getElementById("notification-dropdown");
+  if (dropdown) {
+    dropdown.style.display = "block";
+    loadNotifications(username);
+  }
+}
+
+// Close notification dropdown
+function closeNotificationDropdown() {
+  const dropdown = document.getElementById("notification-dropdown");
+  if (dropdown) {
+    dropdown.style.display = "none";
+  }
+}
+
+// Update the DOMContentLoaded event listener
 document.addEventListener("DOMContentLoaded", () => {
   initShot();
   
   // Update user activity on page load and periodically
   const username = checkAuth();
   if (username) {
+    // Display user info
+    displayUserInfo(username);
+    
+    // Load notifications
+    loadNotifications(username);
+    
+    // Update notifications periodically
+    setInterval(() => {
+      loadNotifications(username);
+    }, 30000); // Every 30 seconds
+    
     updateUserActivity();
     // Update activity every 2 minutes
     setInterval(updateUserActivity, 120000);
   }
   
+  // Logout button
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", handleLogout);
+  }
+  
+  // Notification button
+  const notificationBtn = document.getElementById("notification-btn");
+  const notificationDropdown = document.getElementById("notification-dropdown");
+  const closeNotificationsBtn = document.getElementById("close-notifications");
+  
+  if (notificationBtn && notificationDropdown) {
+    notificationBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isVisible = notificationDropdown.style.display !== "none";
+      if (isVisible) {
+        closeNotificationDropdown();
+      } else {
+        openNotificationDropdown(username);
+      }
+    });
+  }
+  
+  if (closeNotificationsBtn) {
+    closeNotificationsBtn.addEventListener("click", () => {
+      closeNotificationDropdown();
+    });
+  }
+  
+  // Close notification dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (notificationDropdown && 
+        !notificationDropdown.contains(e.target) && 
+        !notificationBtn?.contains(e.target) &&
+        notificationDropdown.style.display !== "none") {
+      closeNotificationDropdown();
+    }
+  });
 });
 
 

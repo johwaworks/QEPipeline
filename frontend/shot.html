@@ -7,18 +7,51 @@
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="dashboard.css" />
     <link rel="stylesheet" href="shot.css" />
+    <link rel="stylesheet" href="chat.css" />
+    <link rel="stylesheet" href="title-chat-btn.css" />
   </head>
   <body>
     <div class="dashboard-container">
       <div class="shot-header">
-        <div class="shot-header-left">
+        <div class="shot-header-top-row">
           <a href="dashboard.html" class="back-link">← Back to Dashboard</a>
-          <div class="shot-header-divider"></div>
+          <div class="shot-header-user-info">
+            <div class="user-section">
+              <div class="user-info-row">
+                <div class="notification-container">
+                  <button id="notification-btn" class="notification-btn" title="Notifications">
+                    <span class="notification-icon">🔔</span>
+                    <span id="notification-badge" class="notification-badge" style="display: none;">0</span>
+                  </button>
+                  <div id="notification-dropdown" class="notification-dropdown" style="display: none;">
+                    <div class="notification-header">
+                      <h3 class="notification-title">Notifications</h3>
+                      <button id="close-notifications" class="close-notifications-btn">×</button>
+                    </div>
+                    <div id="notification-list" class="notification-list">
+                      <div class="loading">Loading notifications...</div>
+                    </div>
+                  </div>
+                </div>
+                <a href="profile.html" class="username-box" id="username-display"></a>
+              </div>
+              <button id="logout-btn" class="logout-box">Logout</button>
+            </div>
+          </div>
+        </div>
+        <div class="shot-header-left">
           <div class="shot-title-row">
             <div class="shot-title-with-project">
               <div class="shot-title-wrapper">
                 <span class="shot-subtitle">Shot</span>
-                <h1 class="shot-title" id="shot-title">Shot Name</h1>
+                <div class="shot-title-line">
+                  <h1 class="shot-title" id="shot-title">Shot Name</h1>
+                  <button id="shot-chat-btn" class="title-chat-btn" title="Open Chat">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
             <button id="edit-shot-btn" class="edit-shot-btn">Edit Shot</button>
@@ -116,14 +149,27 @@
             </div>
             <div class="divider"></div>
             <div id="workers-assignment-content" class="workers-assignment-content" style="display: block;">
-              <div class="workers-assignment-part-selector">
-                <button id="part-selector-button" class="part-selector-button">
-                  <span class="part-selector-button-text">Select Parts</span>
-                  <span class="part-selector-button-arrow">▼</span>
-                </button>
-                <div id="part-selector-dropdown" class="part-selector-dropdown" style="display: none;">
-                  <div id="part-selector-list" class="part-selector-list">
-                    <div class="loading">Loading parts...</div>
+              <div class="workers-assignment-selectors-row">
+                <div class="workers-assignment-part-selector">
+                  <button id="part-selector-button" class="part-selector-button">
+                    <span class="part-selector-button-text">Select Parts</span>
+                    <span class="part-selector-button-arrow">▼</span>
+                  </button>
+                  <div id="part-selector-dropdown" class="part-selector-dropdown" style="display: none;">
+                    <div id="part-selector-list" class="part-selector-list">
+                      <div class="loading">Loading parts...</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="workers-assignment-worker-selector">
+                  <button id="worker-selector-button" class="part-selector-button">
+                    <span class="part-selector-button-text">Select Workers</span>
+                    <span class="part-selector-button-arrow">▼</span>
+                  </button>
+                  <div id="worker-selector-dropdown" class="part-selector-dropdown" style="display: none;">
+                    <div id="worker-selector-list" class="part-selector-list">
+                      <div class="loading">Loading workers...</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -204,8 +250,98 @@
       </div>
     </div>
 
+    <!-- Chat Window -->
+    <div id="chat-window" class="chat-window">
+      <div class="chat-window-header">
+        <div class="chat-window-title" id="chat-window-title-hidden" style="display: none; cursor: pointer;">
+          <span>Chat</span>
+        </div>
+        <div class="chat-window-controls">
+          <button id="chat-fullscreen-btn" class="chat-control-btn" title="Open in new window">⛶</button>
+          <button id="chat-minimize-btn" class="chat-control-btn" title="Minimize">−</button>
+          <button id="chat-maximize-btn" class="chat-control-btn" title="Maximize">□</button>
+          <button id="chat-close-btn" class="chat-control-btn" title="Close">×</button>
+        </div>
+      </div>
+      <div class="chat-window-body">
+        <div class="chat-conversations-list">
+          <div class="chat-conversations-header">
+            <h3>Chat Rooms</h3>
+          </div>
+          <div id="chat-conversations" class="chat-conversations">
+            <div class="chat-empty-state">
+              <p>No chat rooms yet</p>
+              <p>Create a project or shot to start chatting</p>
+            </div>
+          </div>
+        </div>
+        <div class="chat-messages-area">
+          <div id="chat-messages-empty" class="chat-messages-empty">
+            <p>Select a conversation to start chatting</p>
+          </div>
+          <div id="chat-messages-container" class="chat-messages-container" style="display: none;">
+            <div class="chat-messages-header">
+              <div class="chat-window-title" id="chat-window-title">
+                <span>Chat</span>
+                <button id="chat-participants-btn" class="chat-participants-btn" title="View Participants" style="display: none;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="chat-recipient-info">
+                <span id="chat-recipient-name"></span>
+              </div>
+            </div>
+            <div id="chat-participants-dropdown" class="chat-participants-dropdown" style="display: none;">
+              <div class="chat-participants-header">
+                <h3>Participants</h3>
+                <button id="chat-participants-close" class="chat-participants-close">×</button>
+              </div>
+              <div id="chat-participants-list" class="chat-participants-list">
+                <p class="chat-participants-loading">Loading...</p>
+              </div>
+            </div>
+            <div id="chat-messages-list" class="chat-messages-list">
+            </div>
+            <div class="chat-input-container">
+              <textarea id="chat-input" class="chat-input" placeholder="Type a message..." rows="1"></textarea>
+              <button id="chat-send-btn" class="chat-send-btn" title="Send">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-resize-handle"></div>
+    </div>
+
+    <!-- Chat Toggle Button -->
+    <button id="chat-toggle-btn" class="chat-toggle-btn" title="Open Chat">
+      <div class="chat-toggle-btn-content">
+        <div class="chat-toggle-btn-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span id="chat-toggle-badge" class="chat-toggle-btn-badge hidden">0</span>
+        </div>
+        <span class="chat-toggle-btn-text">메시지</span>
+        <div class="chat-toggle-btn-avatars" id="chat-toggle-avatars">
+          <!-- Avatars will be added dynamically -->
+        </div>
+      </div>
+    </button>
+
     <script src="logo-handler.js"></script>
     <script src="shot.js"></script>
+    <script src="time-sync.js"></script>
+    <script src="chat.js"></script>
   </body>
 </html>
 

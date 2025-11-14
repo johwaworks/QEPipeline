@@ -57,6 +57,16 @@ async function loadProject(projectId) {
     }
     
     currentProject = result.project;
+    currentProjectId = projectId;
+    
+      // Update chat context - set on window object for chat.js to access
+      window.currentProjectId = currentProjectId;
+      window.currentShotId = null;
+      
+      // Update chat context
+      if (window.updateChatContext) {
+        window.updateChatContext(currentProjectId, null);
+      }
     
     // Update page title
     const titleEl = document.getElementById("project-title");
@@ -64,7 +74,7 @@ async function loadProject(projectId) {
       titleEl.textContent = currentProject.name || "Project";
     }
     
-    // Update director and deadline
+    // Update director
     const directorEl = document.getElementById("project-director");
     if (directorEl && currentProject) {
       if (currentProject.director && currentProject.director.trim()) {
@@ -75,21 +85,59 @@ async function loadProject(projectId) {
       }
     }
     
-    // Update deadline
-    const deadlineEl = document.getElementById("project-deadline");
-    if (deadlineEl && currentProject) {
+    // Update D-Day and deadline date
+    const ddayEl = document.getElementById("project-dday");
+    const deadlineDateEl = document.getElementById("project-deadline-date");
+    
+    if (ddayEl && deadlineDateEl && currentProject) {
       if (currentProject.deadline && currentProject.deadline.trim()) {
-        // Format deadline date
+        // Calculate D-Day
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to start of day
+        
         const deadlineDate = new Date(currentProject.deadline);
+        deadlineDate.setHours(0, 0, 0, 0); // Reset time to start of day
+        
+        // Calculate difference in days
+        const diffTime = deadlineDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Format deadline date
         const formattedDate = deadlineDate.toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'short',
           day: 'numeric'
         });
-        deadlineEl.textContent = `Deadline: ${formattedDate}`;
-        deadlineEl.style.display = "";
+        deadlineDateEl.textContent = formattedDate;
+        deadlineDateEl.style.display = "";
+        
+        // Remove previous color classes
+        ddayEl.classList.remove("dday-green", "dday-blue", "dday-red", "dday-past");
+        
+        if (diffDays > 0) {
+          ddayEl.textContent = `D-${diffDays}`;
+          // Apply color based on remaining days
+          if (diffDays >= 14) {
+            ddayEl.classList.add("dday-green");
+          } else if (diffDays >= 7) {
+            ddayEl.classList.add("dday-blue");
+          } else {
+            ddayEl.classList.add("dday-red");
+          }
+          ddayEl.style.display = "";
+        } else if (diffDays === 0) {
+          ddayEl.textContent = "D-Day";
+          ddayEl.classList.add("dday-red");
+          ddayEl.style.display = "";
+        } else {
+          // Past deadline
+          ddayEl.textContent = `D+${Math.abs(diffDays)}`;
+          ddayEl.classList.add("dday-past");
+          ddayEl.style.display = "";
+        }
       } else {
-        deadlineEl.style.display = "none";
+        ddayEl.style.display = "none";
+        deadlineDateEl.style.display = "none";
       }
     }
     
@@ -199,6 +247,18 @@ async function loadWorkers() {
       console.error("Error loading active users:", error);
     }
     
+    // Get current user's partners to check if worker is a partner
+    let currentUserPartners = [];
+    try {
+      const partnersResponse = await apiFetch(`${API_BASE_URL}/api/users/${currentUsername}/partners`);
+      if (partnersResponse.ok) {
+        const partnersResult = await partnersResponse.json();
+        currentUserPartners = (partnersResult.partners || []).map(p => p.username || p);
+      }
+    } catch (error) {
+      console.error("Error loading partners:", error);
+    }
+    
     workersList.innerHTML = workers.map(worker => {
       const displayName = worker.name || worker.username || worker;
       const username = worker.username || worker;
@@ -206,6 +266,7 @@ async function loadWorkers() {
       const isOwner = username === owner;
       const isCurrentUser = username === currentUsername;
       const isActive = activeUsers.includes(username);
+      const isPartner = currentUserPartners.includes(username);
       const statusIndicator = isActive ? '<span class="worker-status-indicator active" title="Active"></span>' : '<span class="worker-status-indicator" title="Offline"></span>';
       const userClass = isCurrentUser ? 'worker-current-user' : '';
       return `
@@ -219,7 +280,18 @@ async function loadWorkers() {
           </div>
           ${role ? `<span class="worker-role">${escapeHtml(role)}</span>` : '<span class="worker-role" style="opacity: 0.5;">No Role</span>'}
         </div>
-        <button class="remove-worker-btn" data-worker-username="${username}" title="Remove worker" ${isOwner ? 'style="display: none;"' : ''}>×</button>
+        <div class="worker-actions">
+          ${!isCurrentUser ? `
+            <button class="user-context-menu-btn" data-username="${username}" data-is-partner="${isPartner}" title="More actions">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="1"></circle>
+                <circle cx="12" cy="5" r="1"></circle>
+                <circle cx="12" cy="19" r="1"></circle>
+              </svg>
+            </button>
+          ` : ''}
+          <button class="remove-worker-btn" data-worker-username="${username}" title="Remove worker" ${isOwner || isCurrentUser ? 'style="display: none;"' : ''}>×</button>
+        </div>
       </div>
     `;
     }).join('');
@@ -227,10 +299,21 @@ async function loadWorkers() {
     // Add remove worker event listeners
     document.querySelectorAll('.remove-worker-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
         const username = e.target.getAttribute('data-worker-username');
         if (username && confirm(`Remove ${username} from this project?`)) {
           await handleRemoveWorker(username);
         }
+      });
+    });
+    
+    // Add context menu event listeners for workers
+    document.querySelectorAll('.user-context-menu-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const username = btn.getAttribute('data-username');
+        const isPartner = btn.getAttribute('data-is-partner') === 'true';
+        await showUserContextMenu(e.target.closest('.worker-item'), username, isPartner);
       });
     });
     
@@ -1286,12 +1369,144 @@ async function updateUserActivity() {
 }
 
 // Run when page loads
+// Display username
+function displayUserInfo(username) {
+  const usernameDisplay = document.getElementById("username-display");
+  if (usernameDisplay) {
+    usernameDisplay.textContent = username;
+  }
+}
+
+// Logout function
+function handleLogout() {
+  localStorage.removeItem("qepipeline_logged_in");
+  localStorage.removeItem("qepipeline_username");
+  window.location.href = "index.html";
+}
+
+// Load notifications
+async function loadNotifications(username) {
+  try {
+    const response = await apiFetch(`${API_BASE_URL}/api/partner-requests?username=${encodeURIComponent(username)}`);
+    
+    if (!response.ok) {
+      throw new Error("Failed to load notifications");
+    }
+    
+    const result = await response.json();
+    const requests = result.requests || [];
+    
+    // Update badge
+    const badge = document.getElementById("notification-badge");
+    if (badge) {
+      if (requests.length > 0) {
+        badge.textContent = requests.length > 99 ? "99+" : requests.length;
+        badge.style.display = "block";
+      } else {
+        badge.style.display = "none";
+      }
+    }
+    
+    // Update notification list
+    const notificationList = document.getElementById("notification-list");
+    if (notificationList) {
+      if (requests.length === 0) {
+        notificationList.innerHTML = '<div class="empty-notifications">No new notifications</div>';
+      } else {
+        notificationList.innerHTML = requests.map(request => {
+          const fromUsername = request.from_username || request.from;
+          return `
+            <div class="notification-item">
+              <div class="notification-content">
+                <strong>${escapeHtml(fromUsername)}</strong> wants to be your partner
+              </div>
+              <div class="notification-actions">
+                <button class="notification-action-btn accept" onclick="handlePartnerRequest('${fromUsername}', 'accept')">Accept</button>
+                <button class="notification-action-btn reject" onclick="handlePartnerRequest('${fromUsername}', 'reject')">Reject</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+    
+  } catch (error) {
+    console.error("Error loading notifications:", error);
+    const notificationList = document.getElementById("notification-list");
+    if (notificationList) {
+      notificationList.innerHTML = '<div class="empty-notifications">Failed to load notifications</div>';
+    }
+  }
+}
+
+// Handle partner request (accept/reject)
+async function handlePartnerRequest(fromUsername, action) {
+  try {
+    const username = localStorage.getItem("qepipeline_username");
+    if (!username) return;
+    
+    const response = await apiFetch(`${API_BASE_URL}/api/partner-request/${action}`, {
+      method: "POST",
+      body: JSON.stringify({
+        from_username: fromUsername,
+        to_username: username
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error("Failed to handle partner request");
+    }
+    
+    // Reload notifications
+    loadNotifications(username);
+    
+  } catch (error) {
+    console.error("Error handling partner request:", error);
+    alert("Failed to handle partner request. Please try again.");
+  }
+}
+
+// Open notification dropdown
+function openNotificationDropdown(username) {
+  const dropdown = document.getElementById("notification-dropdown");
+  if (dropdown) {
+    dropdown.style.display = "block";
+    loadNotifications(username);
+  }
+}
+
+// Close notification dropdown
+function closeNotificationDropdown() {
+  const dropdown = document.getElementById("notification-dropdown");
+  if (dropdown) {
+    dropdown.style.display = "none";
+  }
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initProject();
   
   // Update user activity on page load and periodically
   const username = checkAuth();
   if (username) {
+    // Display user info
+    displayUserInfo(username);
+    
+    // Load notifications
+    loadNotifications(username);
+    
+    // Update notifications periodically
+    setInterval(() => {
+      loadNotifications(username);
+    }, 30000); // Every 30 seconds
+    
     updateUserActivity();
     // Update activity every 2 minutes
     setInterval(updateUserActivity, 120000);
@@ -1303,5 +1518,44 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }, 30000); // 30 seconds
   }
+  
+  // Logout button
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", handleLogout);
+  }
+  
+  // Notification button
+  const notificationBtn = document.getElementById("notification-btn");
+  const notificationDropdown = document.getElementById("notification-dropdown");
+  const closeNotificationsBtn = document.getElementById("close-notifications");
+  
+  if (notificationBtn && notificationDropdown) {
+    notificationBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isVisible = notificationDropdown.style.display !== "none";
+      if (isVisible) {
+        closeNotificationDropdown();
+      } else {
+        openNotificationDropdown(username);
+      }
+    });
+  }
+  
+  if (closeNotificationsBtn) {
+    closeNotificationsBtn.addEventListener("click", () => {
+      closeNotificationDropdown();
+    });
+  }
+  
+  // Close notification dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (notificationDropdown && 
+        !notificationDropdown.contains(e.target) && 
+        !notificationBtn?.contains(e.target) &&
+        notificationDropdown.style.display !== "none") {
+      closeNotificationDropdown();
+    }
+  });
 });
 

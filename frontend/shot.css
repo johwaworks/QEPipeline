@@ -1,9 +1,19 @@
 .shot-header {
+  margin-bottom: 60px;
+}
+
+.shot-header-top-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 60px;
-  gap: 40px;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
+.shot-header-user-info {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .shot-header-left {
@@ -64,6 +74,13 @@
   flex-direction: column;
   gap: 8px;
   align-items: flex-start;
+}
+
+.shot-title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .shot-subtitle {
@@ -1474,8 +1491,19 @@
   margin-bottom: 30px;
 }
 
-.workers-assignment-part-selector {
+.workers-assignment-selectors-row {
+  display: flex;
+  gap: 20px;
   margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.workers-assignment-part-selector {
+  position: relative;
+  display: inline-block;
+}
+
+.workers-assignment-worker-selector {
   position: relative;
   display: inline-block;
 }

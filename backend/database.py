@@ -80,6 +80,12 @@ class Database:
         self.db.files.create_index("project_id")
         self.db.files.create_index("shot_id")
         self.db.files.create_index("created_at")
+        # Chat rooms indexes
+        self.db.chat_rooms.create_index("project_id")
+        self.db.chat_rooms.create_index("shot_id")
+        self.db.chat_rooms.create_index("participants")
+        self.db.chat_rooms.create_index("chat_type")  # "project", "shot", "personal"
+        self.db.messages.create_index("chat_room_id")
         
         # Create admin user if it doesn't exist (using default password)
         admin_user = self.db.users.find_one({"username": ADMIN_USERNAME})
@@ -463,7 +469,21 @@ class Database:
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow()
             })
-            return str(result.inserted_id)
+            project_id = str(result.inserted_id)
+            
+            # Create project chat room automatically
+            chat_room_id = self.create_chat_room(
+                chat_type="project",
+                name=name,
+                project_id=project_id,
+                created_by=owner
+            )
+            
+            if chat_room_id and workers:
+                # Add all workers to the chat room
+                self.add_participants_to_chat_room(chat_room_id, workers)
+            
+            return project_id
         except Exception as e:
             print(f"Error creating project: {e}")
             return None
@@ -710,6 +730,32 @@ class Database:
             return result.modified_count > 0 or result.matched_count > 0
         except Exception as e:
             print(f"Error updating shot description lock: {e}")
+            return False
+    
+    def update_shot_workers(self, shot_id: str, shot_workers: List[str]) -> bool:
+        """Update shot workers (participants) for a shot"""
+        try:
+            from bson import ObjectId
+            result = self.db.shots.update_one(
+                {"_id": ObjectId(shot_id)},
+                {"$set": {"shot_workers": shot_workers, "updated_at": datetime.utcnow()}}
+            )
+            
+            # Update shot chat room participants to match shot_workers
+            if result.modified_count > 0 or result.matched_count > 0:
+                # Find the shot's chat room
+                shot_chat_room = self.db.chat_rooms.find_one({
+                    "shot_id": ObjectId(shot_id),
+                    "chat_type": "shot"
+                })
+                
+                if shot_chat_room:
+                    # Update participants to match shot_workers
+                    self.set_chat_room_participants(str(shot_chat_room["_id"]), shot_workers)
+            
+            return result.modified_count > 0 or result.matched_count > 0
+        except Exception as e:
+            print(f"Error updating shot workers: {e}")
             return False
     
     def update_shot_workers_assignment(self, shot_id: str, workers_assignment: Dict) -> bool:
@@ -1096,7 +1142,26 @@ class Database:
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow()
             })
-            return str(result.inserted_id)
+            shot_id = str(result.inserted_id)
+            
+            # Create shot chat room automatically
+            chat_room_id = self.create_chat_room(
+                chat_type="shot",
+                name=shot_name,
+                project_id=project_id,
+                shot_id=shot_id,
+                created_by=None  # Can be set later if needed
+            )
+            
+            if chat_room_id:
+                # Get project workers to add to shot chat room
+                project = self.db.projects.find_one({"_id": ObjectId(project_id)})
+                if project and project.get("workers"):
+                    workers = project.get("workers", [])
+                    if workers:
+                        self.add_participants_to_chat_room(chat_room_id, workers)
+            
+            return shot_id
         except Exception as e:
             print(f"Error creating shot: {e}")
             return None
@@ -1152,6 +1217,777 @@ class Database:
         except Exception as e:
             print(f"Error approving project deletion: {e}")
             return False
+    
+    def create_chat_room(self, chat_type: str, name: str, project_id: str = None, shot_id: str = None, created_by: str = None) -> Optional[str]:
+        """Create a new chat room"""
+        try:
+            from bson import ObjectId
+            
+            chat_room = {
+                "chat_type": chat_type,  # "project", "shot", "personal"
+                "name": name,
+                "participants": [],
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            if project_id:
+                chat_room["project_id"] = ObjectId(project_id)
+            if shot_id:
+                chat_room["shot_id"] = ObjectId(shot_id)
+            if created_by:
+                chat_room["created_by"] = created_by
+            
+            result = self.db.chat_rooms.insert_one(chat_room)
+            return str(result.inserted_id)
+            
+        except Exception as e:
+            print(f"Error creating chat room: {e}")
+            return None
+    
+    def get_chat_room(self, chat_room_id: str) -> Optional[Dict]:
+        """Get a chat room by ID"""
+        try:
+            from bson import ObjectId
+            
+            chat_room = self.db.chat_rooms.find_one({"_id": ObjectId(chat_room_id)})
+            if chat_room:
+                chat_room["_id"] = str(chat_room["_id"])
+                if "project_id" in chat_room:
+                    chat_room["project_id"] = str(chat_room["project_id"])
+                if "shot_id" in chat_room:
+                    chat_room["shot_id"] = str(chat_room["shot_id"])
+                if "created_at" in chat_room:
+                    chat_room["created_at"] = chat_room["created_at"].isoformat()
+                if "updated_at" in chat_room:
+                    chat_room["updated_at"] = chat_room["updated_at"].isoformat()
+                
+                # Get last message time and content for this chat room
+                last_message = self.db.messages.find_one(
+                    {"chat_room_id": ObjectId(chat_room["_id"])},
+                    sort=[("created_at", -1)]
+                )
+                if last_message:
+                    if "created_at" in last_message:
+                        chat_room["lastMessageTime"] = last_message["created_at"].isoformat()
+                    if "content" in last_message:
+                        chat_room["lastMessage"] = last_message.get("content", "")[:100]  # First 100 chars
+                    if "author_username" in last_message:
+                        chat_room["lastMessageAuthor"] = last_message.get("author_username", "")
+                
+                return chat_room
+            
+        except Exception as e:
+            print(f"Error getting chat room: {e}")
+            return None
+    
+    def get_project_chat_room(self, project_id: str) -> Optional[Dict]:
+        """Get or create chat room for a project"""
+        try:
+            from bson import ObjectId
+            
+            # Check if chat room already exists
+            chat_room = self.db.chat_rooms.find_one({"project_id": ObjectId(project_id), "chat_type": "project"})
+            
+            if chat_room:
+                chat_room["_id"] = str(chat_room["_id"])
+                chat_room["project_id"] = str(chat_room["project_id"])
+                if "shot_id" in chat_room:
+                    chat_room["shot_id"] = str(chat_room["shot_id"])
+                if "created_at" in chat_room:
+                    chat_room["created_at"] = chat_room["created_at"].isoformat()
+                if "updated_at" in chat_room:
+                    chat_room["updated_at"] = chat_room["updated_at"].isoformat()
+                
+                # Get last message time and content for this chat room
+                last_message = self.db.messages.find_one(
+                    {"chat_room_id": ObjectId(chat_room["_id"])},
+                    sort=[("created_at", -1)]
+                )
+                if last_message:
+                    if "created_at" in last_message:
+                        chat_room["lastMessageTime"] = last_message["created_at"].isoformat()
+                    if "content" in last_message:
+                        chat_room["lastMessage"] = last_message.get("content", "")[:100]  # First 100 chars
+                    if "author_username" in last_message:
+                        chat_room["lastMessageAuthor"] = last_message.get("author_username", "")
+                
+                return chat_room
+            
+            # Create new chat room
+            project = self.get_project(project_id)
+            if not project:
+                return None
+            
+            chat_room_id = self.create_chat_room(
+                chat_type="project",
+                name=project.get("name", f"Project {project_id}"),
+                project_id=project_id,
+                created_by=project.get("owner")
+            )
+            
+            if chat_room_id:
+                # Add all workers to the chat room
+                workers = project.get("workers", [])
+                if workers:
+                    self.add_participants_to_chat_room(chat_room_id, workers)
+                
+                return self.get_chat_room(chat_room_id)
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error getting project chat room: {e}")
+            return None
+    
+    def get_shot_chat_room(self, shot_id: str) -> Optional[Dict]:
+        """Get or create chat room for a shot"""
+        try:
+            from bson import ObjectId
+            
+            # Check if chat room already exists
+            chat_room = self.db.chat_rooms.find_one({"shot_id": ObjectId(shot_id), "chat_type": "shot"})
+            
+            if chat_room:
+                chat_room["_id"] = str(chat_room["_id"])
+                if "project_id" in chat_room:
+                    chat_room["project_id"] = str(chat_room["project_id"])
+                chat_room["shot_id"] = str(chat_room["shot_id"])
+                if "created_at" in chat_room:
+                    chat_room["created_at"] = chat_room["created_at"].isoformat()
+                if "updated_at" in chat_room:
+                    chat_room["updated_at"] = chat_room["updated_at"].isoformat()
+                
+                # Get last message time and content for this chat room
+                last_message = self.db.messages.find_one(
+                    {"chat_room_id": ObjectId(chat_room["_id"])},
+                    sort=[("created_at", -1)]
+                )
+                if last_message:
+                    if "created_at" in last_message:
+                        chat_room["lastMessageTime"] = last_message["created_at"].isoformat()
+                    if "content" in last_message:
+                        chat_room["lastMessage"] = last_message.get("content", "")[:100]  # First 100 chars
+                    if "author_username" in last_message:
+                        chat_room["lastMessageAuthor"] = last_message.get("author_username", "")
+                
+                return chat_room
+            
+            # Create new chat room
+            shot = self.get_shot(shot_id)
+            if not shot:
+                return None
+            
+            shot_name = shot.get("shot_name") or shot.get("name") or f"Shot {shot_id}"
+            project_id = shot.get("project_id")
+            
+            chat_room_id = self.create_chat_room(
+                chat_type="shot",
+                name=shot_name,
+                project_id=str(project_id) if project_id else None,
+                shot_id=shot_id,
+                created_by=shot.get("created_by")
+            )
+            
+            if chat_room_id:
+                # Get shot workers (if exists), otherwise use project workers
+                shot_workers = shot.get("shot_workers", [])
+                
+                if shot_workers:
+                    # Use shot_workers if specified
+                    self.set_chat_room_participants(chat_room_id, shot_workers)
+                else:
+                    # Otherwise, get project to add workers
+                    if project_id:
+                        project = self.get_project(str(project_id))
+                        if project:
+                            workers = project.get("workers", [])
+                            if workers:
+                                self.add_participants_to_chat_room(chat_room_id, workers)
+                
+                return self.get_chat_room(chat_room_id)
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error getting shot chat room: {e}")
+            return None
+    
+    def add_participants_to_chat_room(self, chat_room_id: str, participants: List[str]) -> bool:
+        """Add participants to a chat room"""
+        try:
+            from bson import ObjectId
+            
+            chat_room = self.db.chat_rooms.find_one({"_id": ObjectId(chat_room_id)})
+            if not chat_room:
+                return False
+            
+            current_participants = set(chat_room.get("participants", []))
+            new_participants = set(participants)
+            all_participants = list(current_participants | new_participants)
+            
+            self.db.chat_rooms.update_one(
+                {"_id": ObjectId(chat_room_id)},
+                {
+                    "$set": {
+                        "participants": all_participants,
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error adding participants to chat room: {e}")
+            return False
+    
+    def set_chat_room_participants(self, chat_room_id: str, participants: List[str]) -> bool:
+        """Set chat room participants (replace existing participants)"""
+        try:
+            from bson import ObjectId
+            
+            chat_room = self.db.chat_rooms.find_one({"_id": ObjectId(chat_room_id)})
+            if not chat_room:
+                return False
+            
+            # Set participants to the exact list provided
+            self.db.chat_rooms.update_one(
+                {"_id": ObjectId(chat_room_id)},
+                {
+                    "$set": {
+                        "participants": participants,
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error setting chat room participants: {e}")
+            return False
+    
+    def get_chat_room_messages(self, chat_room_id: str, limit: int = 100) -> List[Dict]:
+        """Get messages for a chat room"""
+        try:
+            from bson import ObjectId
+            
+            messages = list(self.db.messages.find(
+                {"chat_room_id": ObjectId(chat_room_id)}
+            ).sort("created_at", -1).limit(limit))
+            
+            # Reverse to get chronological order
+            messages.reverse()
+            
+            # Convert ObjectId to string
+            for message in messages:
+                message["_id"] = str(message["_id"])
+                if "chat_room_id" in message:
+                    message["chat_room_id"] = str(message["chat_room_id"])
+                if "project_id" in message:
+                    message["project_id"] = str(message["project_id"])
+                if "shot_id" in message:
+                    message["shot_id"] = str(message["shot_id"])
+                if "created_at" in message:
+                    message["created_at"] = message["created_at"].isoformat()
+                if "updated_at" in message:
+                    message["updated_at"] = message["updated_at"].isoformat()
+                # Ensure read_by field exists (for old messages)
+                if "read_by" not in message:
+                    message["read_by"] = []
+                # Ensure read_by is a list of strings
+                if isinstance(message.get("read_by"), list):
+                    message["read_by"] = [str(r) for r in message["read_by"]]
+                else:
+                    message["read_by"] = []
+            
+            return messages
+            
+        except Exception as e:
+            print(f"Error getting chat room messages: {e}")
+            return []
+    
+    def create_chat_message(self, chat_room_id: str, username: str, content: str) -> Optional[str]:
+        """Create a new message in a chat room"""
+        try:
+            from bson import ObjectId
+            
+            # Get user info
+            user = self.db.users.find_one({"username": username})
+            author_name = user.get("name") if user else None
+            
+            # Get chat room info
+            chat_room = self.db.chat_rooms.find_one({"_id": ObjectId(chat_room_id)})
+            if not chat_room:
+                return None
+            
+            message = {
+                "chat_room_id": ObjectId(chat_room_id),
+                "author_username": username,
+                "author_name": author_name,
+                "content": content,
+                "read_by": [],  # List of usernames who have read this message
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+            }
+            
+            # Add project_id or shot_id if available
+            if "project_id" in chat_room:
+                message["project_id"] = chat_room["project_id"]
+            if "shot_id" in chat_room:
+                message["shot_id"] = chat_room["shot_id"]
+            
+            result = self.db.messages.insert_one(message)
+            
+            # Update chat room's updated_at
+            self.db.chat_rooms.update_one(
+                {"_id": ObjectId(chat_room_id)},
+                {"$set": {"updated_at": datetime.utcnow()}}
+            )
+            
+            return str(result.inserted_id)
+            
+        except Exception as e:
+            print(f"Error creating chat message: {e}")
+            return None
+    
+    def mark_chat_room_messages_as_read(self, chat_room_id: str, username: str) -> bool:
+        """Mark all messages in a chat room as read by a user"""
+        try:
+            from bson import ObjectId
+            
+            # Update all messages in the chat room that are not authored by the reader
+            # Add username to read_by array if not already present
+            result = self.db.messages.update_many(
+                {
+                    "chat_room_id": ObjectId(chat_room_id),
+                    "author_username": {"$ne": username},  # Don't mark own messages as read
+                    "read_by": {"$ne": username}  # Only if not already read
+                },
+                {
+                    "$addToSet": {"read_by": username},  # Add username to read_by array
+                    "$set": {"updated_at": datetime.utcnow()}
+                }
+            )
+            
+            return result.modified_count > 0 or result.matched_count > 0
+            
+        except Exception as e:
+            print(f"Error marking messages as read: {e}")
+            return False
+    
+    def get_or_create_personal_chat_room(self, username1: str, username2: str) -> Optional[Dict]:
+        """Get or create a personal chat room between two users"""
+        try:
+            from bson import ObjectId
+            
+            # Sort usernames to ensure consistent room lookup
+            sorted_usernames = sorted([username1, username2])
+            
+            # Check if personal chat room already exists
+            # Find rooms with both users and exactly 2 participants
+            all_rooms = list(self.db.chat_rooms.find({
+                "chat_type": "personal",
+                "participants": {"$all": sorted_usernames}
+            }))
+            
+            # Filter to get only rooms with exactly 2 participants
+            chat_room = None
+            for room in all_rooms:
+                if len(room.get("participants", [])) == 2:
+                    chat_room = room
+                    break
+            
+            if chat_room:
+                chat_room["_id"] = str(chat_room["_id"])
+                if "project_id" in chat_room:
+                    chat_room["project_id"] = str(chat_room["project_id"])
+                if "shot_id" in chat_room:
+                    chat_room["shot_id"] = str(chat_room["shot_id"])
+                if "created_at" in chat_room:
+                    chat_room["created_at"] = chat_room["created_at"].isoformat()
+                if "updated_at" in chat_room:
+                    chat_room["updated_at"] = chat_room["updated_at"].isoformat()
+                
+                # For personal chat rooms, add display_name with partner's name only
+                # (excluding current user's name)
+                # username1 is the requesting user (current user), so show username2's name
+                if chat_room.get("chat_type") == "personal":
+                    participants = chat_room.get("participants", [])
+                    if len(participants) == 2:
+                        # username1 is the current user, so find username2 (the partner)
+                        partner_username = username2
+                        
+                        # Verify that username2 is actually in participants
+                        if username2 not in participants:
+                            # Fallback: find the one that's not username1
+                            partner_username = participants[0] if participants[0] != username1 else participants[1]
+                        
+                        # Get partner's info to get their display name - MUST use name, not username
+                        partner_info = self.get_user(partner_username)
+                        if partner_info:
+                            # Force get name field from database
+                            partner_name = partner_info.get("name")
+                            # Check if name exists and is not empty
+                            if partner_name and str(partner_name).strip():
+                                chat_room["display_name"] = str(partner_name).strip()
+                            else:
+                                # If name is not set, STILL try to use name from database directly
+                                # Fallback: check database directly one more time
+                                db_user = self.db.users.find_one({"username": partner_username})
+                                if db_user and db_user.get("name") and str(db_user.get("name")).strip():
+                                    chat_room["display_name"] = str(db_user.get("name")).strip()
+                                else:
+                                    # Last resort: use username
+                                    chat_room["display_name"] = partner_username
+                        else:
+                            # If user not found, use username
+                            chat_room["display_name"] = partner_username
+                
+                return chat_room
+            
+            # Check if users exist
+            user1 = self.get_user(username1)
+            user2 = self.get_user(username2)
+            
+            if not user1 or not user2:
+                return None
+            
+            # Verify they are partners
+            partners1 = user1.get("partners", [])
+            partners2 = user2.get("partners", [])
+            
+            if username2 not in partners1 or username1 not in partners2:
+                return None
+            
+            # Get user names for chat room name
+            # Use partner's name only (exclude current user's name)
+            name1 = user1.get("name") or username1
+            name2 = user2.get("name") or username2
+            # For now, use both names. Frontend will filter out current user's name
+            room_name = f"{name1} & {name2}"
+            
+            # Create personal chat room
+            chat_room_id = self.create_chat_room(
+                chat_type="personal",
+                name=room_name,
+                created_by=username1
+            )
+            
+            if chat_room_id:
+                # Add both users as participants
+                self.add_participants_to_chat_room(chat_room_id, [username1, username2])
+                chat_room = self.get_chat_room(chat_room_id)
+                
+                # Set display_name with partner's name only (for the requesting user - username1)
+                if chat_room:
+                    # username1 is the requesting user, so show username2's name
+                    # Force get name field from user2 object
+                    partner_name = user2.get("name")
+                    # Check if name exists and is not empty
+                    if partner_name and str(partner_name).strip():
+                        chat_room["display_name"] = str(partner_name).strip()
+                    else:
+                        # If name is not set, check database directly
+                        db_user = self.db.users.find_one({"username": username2})
+                        if db_user and db_user.get("name") and str(db_user.get("name")).strip():
+                            chat_room["display_name"] = str(db_user.get("name")).strip()
+                        else:
+                            # Last resort: use username
+                            chat_room["display_name"] = username2
+                
+                return chat_room
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error getting or creating personal chat room: {e}")
+            return None
+    
+    def get_user_personal_chat_rooms(self, username: str) -> List[Dict]:
+        """Get all personal chat rooms for a user"""
+        try:
+            from bson import ObjectId
+            
+            chat_rooms = list(self.db.chat_rooms.find({
+                "chat_type": "personal",
+                "participants": username
+            }).sort("updated_at", -1))
+            
+            for chat_room in chat_rooms:
+                chat_room["_id"] = str(chat_room["_id"])
+                if "project_id" in chat_room:
+                    chat_room["project_id"] = str(chat_room["project_id"])
+                if "shot_id" in chat_room:
+                    chat_room["shot_id"] = str(chat_room["shot_id"])
+                if "created_at" in chat_room:
+                    chat_room["created_at"] = chat_room["created_at"].isoformat()
+                if "updated_at" in chat_room:
+                    chat_room["updated_at"] = chat_room["updated_at"].isoformat()
+                
+                # For personal chat rooms, add display_name with partner's name only
+                # (excluding current user's name)
+                participants = chat_room.get("participants", [])
+                if len(participants) == 2:
+                    # Find the partner (not the current user - username parameter)
+                    partner_username = None
+                    if participants[0] == username:
+                        partner_username = participants[1]
+                    else:
+                        partner_username = participants[0]
+                    
+                    # Get partner's info to get their display name - MUST use name, not username
+                    partner_info = self.get_user(partner_username)
+                    if partner_info:
+                        # Force get name field from database
+                        partner_name = partner_info.get("name")
+                        # Check if name exists and is not empty
+                        if partner_name and str(partner_name).strip():
+                            chat_room["display_name"] = str(partner_name).strip()
+                        else:
+                            # If name is not set, STILL try to use name from database directly
+                            # Fallback: check database directly one more time
+                            db_user = self.db.users.find_one({"username": partner_username})
+                            if db_user and db_user.get("name") and str(db_user.get("name")).strip():
+                                chat_room["display_name"] = str(db_user.get("name")).strip()
+                            else:
+                                # Last resort: use username
+                                chat_room["display_name"] = partner_username
+                    else:
+                        # If user not found, use username
+                        chat_room["display_name"] = partner_username
+            
+            return chat_rooms
+            
+        except Exception as e:
+            print(f"Error getting user personal chat rooms: {e}")
+            return []
+    
+    def get_user_all_chat_rooms(self, username: str) -> List[Dict]:
+        """Get all chat rooms for a user (project, shot, and personal)"""
+        try:
+            from bson import ObjectId
+            
+            all_chat_rooms = []
+            
+            # Get project chat rooms where user is a worker
+            # Create chat rooms if they don't exist
+            projects = self.db.projects.find({"workers": username})
+            for project in projects:
+                project_id = str(project["_id"])
+                project_chat_room = self.db.chat_rooms.find_one({
+                    "chat_type": "project",
+                    "project_id": ObjectId(project_id)
+                })
+                
+                # If chat room doesn't exist, create it
+                if not project_chat_room:
+                    chat_room_id = self.create_chat_room(
+                        chat_type="project",
+                        name=project.get("name", f"Project {project_id}"),
+                        project_id=project_id,
+                        created_by=project.get("owner")
+                    )
+                    if chat_room_id:
+                        # Add all workers to the chat room
+                        workers = project.get("workers", [])
+                        if workers:
+                            self.add_participants_to_chat_room(chat_room_id, workers)
+                        # Get the created chat room
+                        project_chat_room = self.get_chat_room(chat_room_id)
+                
+                if project_chat_room:
+                    project_chat_room["_id"] = str(project_chat_room["_id"])
+                    project_chat_room["project_id"] = str(project_chat_room["project_id"])
+                    if "shot_id" in project_chat_room:
+                        project_chat_room["shot_id"] = str(project_chat_room["shot_id"])
+                    if "created_at" in project_chat_room:
+                        project_chat_room["created_at"] = project_chat_room["created_at"].isoformat()
+                    if "updated_at" in project_chat_room:
+                        project_chat_room["updated_at"] = project_chat_room["updated_at"].isoformat()
+                    # Add project name for display
+                    project_chat_room["display_name"] = f"{project.get('name', 'Project')} Chat"
+                    
+                    # Get last message time and content for this chat room
+                    last_message = self.db.messages.find_one(
+                        {"chat_room_id": ObjectId(project_chat_room["_id"])},
+                        sort=[("created_at", -1)]
+                    )
+                    if last_message:
+                        if "created_at" in last_message:
+                            project_chat_room["lastMessageTime"] = last_message["created_at"].isoformat()
+                        if "content" in last_message:
+                            project_chat_room["lastMessage"] = last_message.get("content", "")[:100]  # First 100 chars
+                        if "author_username" in last_message:
+                            project_chat_room["lastMessageAuthor"] = last_message.get("author_username", "")
+                    
+                    # Get unread message count for this user
+                    unread_count = self.db.messages.count_documents({
+                        "chat_room_id": ObjectId(project_chat_room["_id"]),
+                        "author_username": {"$ne": username},  # Not messages sent by the user
+                        "read_by": {"$ne": username}  # Not read by the user
+                    })
+                    project_chat_room["unreadCount"] = unread_count
+                    
+                    all_chat_rooms.append(project_chat_room)
+            
+            # Get shot chat rooms for projects where user is a worker
+            # Create chat rooms if they don't exist
+            for project in projects:
+                project_id = str(project["_id"])
+                # Try both string and ObjectId format for project_id in shots
+                shots = list(self.db.shots.find({"project_id": project_id}))
+                shots.extend(list(self.db.shots.find({"project_id": ObjectId(project_id)})))
+                # Remove duplicates
+                seen_shot_ids = set()
+                unique_shots = []
+                for shot in shots:
+                    shot_id_str = str(shot["_id"])
+                    if shot_id_str not in seen_shot_ids:
+                        seen_shot_ids.add(shot_id_str)
+                        unique_shots.append(shot)
+                
+                for shot in unique_shots:
+                    shot_id = str(shot["_id"])
+                    
+                    # Try to find existing chat room
+                    # Try both ObjectId and string formats
+                    shot_chat_room = None
+                    try:
+                        # First try with ObjectId
+                        shot_chat_room = self.db.chat_rooms.find_one({
+                            "chat_type": "shot",
+                            "shot_id": ObjectId(shot_id)
+                        })
+                        # If not found, try with string
+                        if not shot_chat_room:
+                            shot_chat_room = self.db.chat_rooms.find_one({
+                                "chat_type": "shot",
+                                "shot_id": shot_id
+                            })
+                    except Exception as e:
+                        print(f"Error finding shot chat room for shot {shot_id}: {e}")
+                        try:
+                            # Fallback to string format
+                            shot_chat_room = self.db.chat_rooms.find_one({
+                                "chat_type": "shot",
+                                "shot_id": shot_id
+                            })
+                        except Exception as e2:
+                            print(f"Error finding shot chat room with string format for shot {shot_id}: {e2}")
+                            shot_chat_room = None
+                    
+                    # If chat room doesn't exist, create it
+                    if not shot_chat_room:
+                        shot_name = shot.get("shot_name") or shot.get("name") or f"Shot {shot_id}"
+                        chat_room_id = self.create_chat_room(
+                            chat_type="shot",
+                            name=shot_name,
+                            project_id=project_id,
+                            shot_id=shot_id,
+                            created_by=None
+                        )
+                        if chat_room_id:
+                            # Get shot workers (if exists), otherwise use project workers
+                            shot_workers = shot.get("shot_workers", [])
+                            if shot_workers:
+                                # Use shot_workers if specified
+                                self.set_chat_room_participants(chat_room_id, shot_workers)
+                            else:
+                                # Otherwise, get project workers to add to shot chat room
+                                workers = project.get("workers", [])
+                                if workers:
+                                    self.add_participants_to_chat_room(chat_room_id, workers)
+                            # Get the created chat room (already formatted)
+                            shot_chat_room = self.get_chat_room(chat_room_id)
+                    
+                    # Only add shot chat room if user is in participants (shot_workers)
+                    if shot_chat_room:
+                        # Check if user is in participants
+                        participants = shot_chat_room.get("participants", [])
+                        if username not in participants:
+                            # User is not a participant, skip this chat room
+                            continue
+                        # Format chat room data (if not already formatted by get_chat_room)
+                        if isinstance(shot_chat_room.get("_id"), ObjectId):
+                            shot_chat_room["_id"] = str(shot_chat_room["_id"])
+                        if "project_id" in shot_chat_room and isinstance(shot_chat_room["project_id"], ObjectId):
+                            shot_chat_room["project_id"] = str(shot_chat_room["project_id"])
+                        if "shot_id" in shot_chat_room and isinstance(shot_chat_room["shot_id"], ObjectId):
+                            shot_chat_room["shot_id"] = str(shot_chat_room["shot_id"])
+                        if "created_at" in shot_chat_room and not isinstance(shot_chat_room["created_at"], str):
+                            shot_chat_room["created_at"] = shot_chat_room["created_at"].isoformat()
+                        if "updated_at" in shot_chat_room and not isinstance(shot_chat_room["updated_at"], str):
+                            shot_chat_room["updated_at"] = shot_chat_room["updated_at"].isoformat()
+                        
+                        # Add shot name for display
+                        shot_name = shot.get("shot_name") or shot.get("name") or f"Shot {shot_id}"
+                        shot_chat_room["display_name"] = f"{shot_name} Chat"
+                        
+                        # Get last message time and content for this chat room
+                        last_message = self.db.messages.find_one(
+                            {"chat_room_id": ObjectId(shot_chat_room["_id"])},
+                            sort=[("created_at", -1)]
+                        )
+                        if last_message:
+                            if "created_at" in last_message:
+                                shot_chat_room["lastMessageTime"] = last_message["created_at"].isoformat()
+                            if "content" in last_message:
+                                shot_chat_room["lastMessage"] = last_message.get("content", "")[:100]  # First 100 chars
+                            if "author_username" in last_message:
+                                shot_chat_room["lastMessageAuthor"] = last_message.get("author_username", "")
+                        
+                        # Get unread message count for this user
+                        unread_count = self.db.messages.count_documents({
+                            "chat_room_id": ObjectId(shot_chat_room["_id"]),
+                            "author_username": {"$ne": username},  # Not messages sent by the user
+                            "read_by": {"$ne": username}  # Not read by the user
+                        })
+                        shot_chat_room["unreadCount"] = unread_count
+                        
+                        # Only add if not already in list (avoid duplicates)
+                        if not any(room.get("_id") == shot_chat_room.get("_id") for room in all_chat_rooms):
+                            all_chat_rooms.append(shot_chat_room)
+            
+            # Get personal chat rooms
+            personal_chat_rooms = self.get_user_personal_chat_rooms(username)
+            for chat_room in personal_chat_rooms:
+                # Personal chat room name is already set, use it as display_name
+                chat_room["display_name"] = chat_room.get("name", "Personal Chat")
+                
+                # Get last message time and content for this chat room
+                if "_id" in chat_room:
+                    last_message = self.db.messages.find_one(
+                        {"chat_room_id": ObjectId(chat_room["_id"])},
+                        sort=[("created_at", -1)]
+                    )
+                    if last_message:
+                        if "created_at" in last_message:
+                            chat_room["lastMessageTime"] = last_message["created_at"].isoformat()
+                        if "content" in last_message:
+                            chat_room["lastMessage"] = last_message.get("content", "")[:100]  # First 100 chars
+                        if "author_username" in last_message:
+                            chat_room["lastMessageAuthor"] = last_message.get("author_username", "")
+                    
+                    # Get unread message count for this user
+                    unread_count = self.db.messages.count_documents({
+                        "chat_room_id": ObjectId(chat_room["_id"]),
+                        "author_username": {"$ne": username},  # Not messages sent by the user
+                        "read_by": {"$ne": username}  # Not read by the user
+                    })
+                    chat_room["unreadCount"] = unread_count
+                
+                all_chat_rooms.append(chat_room)
+            
+            # Sort by updated_at (most recent first)
+            all_chat_rooms.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
+            
+            return all_chat_rooms
+            
+        except Exception as e:
+            print(f"Error getting user all chat rooms: {e}")
+            return []
     
     def close(self):
         """Close MongoDB connection"""

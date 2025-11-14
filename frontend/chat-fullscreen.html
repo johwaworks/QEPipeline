@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat - QEPipeline</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="chat.css" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: #1a1a1a;
+        overflow: hidden;
+      }
+      
+      #chat-window {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100vw;
+        height: 100vh;
+        max-width: 100vw;
+        max-height: 100vh;
+        border-radius: 0;
+        display: flex !important;
+      }
+      
+      #chat-window .chat-window-controls {
+        display: flex;
+        gap: 8px;
+      }
+      
+      #chat-window .chat-control-btn {
+        width: 24px;
+        height: 24px;
+      }
+      
+      #chat-fullscreen-btn {
+        display: none; /* Hide fullscreen button in fullscreen mode */
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Chat Window -->
+    <div id="chat-window" class="chat-window open">
+      <div class="chat-window-header">
+        <div class="chat-window-title" id="chat-window-title-hidden" style="display: none;">
+          <span>Chat</span>
+        </div>
+        <div class="chat-window-controls">
+          <button id="chat-close-fullscreen-btn" class="chat-control-btn" title="Close">×</button>
+        </div>
+      </div>
+      <div class="chat-window-body">
+        <div class="chat-conversations-list">
+          <div class="chat-conversations-header">
+            <h3>Chat Rooms</h3>
+          </div>
+          <div id="chat-conversations" class="chat-conversations">
+            <div class="chat-empty-state">
+              <p>No chat rooms yet</p>
+              <p>Create a project or shot to start chatting</p>
+            </div>
+          </div>
+        </div>
+        <div class="chat-messages-area">
+          <div id="chat-messages-empty" class="chat-messages-empty">
+            <p>Select a conversation to start chatting</p>
+          </div>
+          <div id="chat-messages-container" class="chat-messages-container" style="display: none;">
+            <div class="chat-messages-header">
+              <div class="chat-window-title" id="chat-window-title">
+                <span>Chat</span>
+                <button id="chat-participants-btn" class="chat-participants-btn" title="View Participants" style="display: none;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="chat-recipient-info">
+                <span id="chat-recipient-name"></span>
+              </div>
+            </div>
+            <div id="chat-participants-dropdown" class="chat-participants-dropdown" style="display: none;">
+              <div class="chat-participants-header">
+                <h3>Participants</h3>
+                <button id="chat-participants-close" class="chat-participants-close">×</button>
+              </div>
+              <div id="chat-participants-list" class="chat-participants-list">
+                <p class="chat-participants-loading">Loading...</p>
+              </div>
+            </div>
+            <div id="chat-messages-list" class="chat-messages-list">
+            </div>
+            <div class="chat-input-container">
+              <textarea id="chat-input" class="chat-input" placeholder="Type a message..." rows="1"></textarea>
+              <button id="chat-send-btn" class="chat-send-btn" title="Send">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Helper function to get API base URL
+      function getApiBaseUrl() {
+        return window.API_BASE_URL || 'https://unscrupulous-kimbra-headstrong.ngrok-free.dev';
+      }
+      
+      // Helper function for API requests with ngrok headers
+      async function apiFetch(url, options = {}) {
+        const headers = {
+          'ngrok-skip-browser-warning': 'true',
+          'Content-Type': 'application/json',
+          ...options.headers
+        };
+        
+        const response = await fetch(url, {
+          ...options,
+          headers
+        });
+        
+        return response;
+      }
+    </script>
+    <script src="time-sync.js"></script>
+    <script src="chat.js"></script>
+    <script>
+      // Initialize chat in fullscreen mode
+      document.addEventListener('DOMContentLoaded', function() {
+        // Make sure chat window is visible
+        const chatWindow = document.getElementById('chat-window');
+        if (chatWindow) {
+          chatWindow.classList.add('open');
+        }
+        
+        if (typeof initChat === 'function') {
+          initChat();
+        }
+        
+        // Load chat rooms after initialization
+        if (typeof loadAllChatRooms === 'function') {
+          setTimeout(() => {
+            loadAllChatRooms();
+          }, 100);
+        }
+        
+        // Handle close button
+        const closeBtn = document.getElementById('chat-close-fullscreen-btn');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', function() {
+            window.close();
+            // If window.close() doesn't work (popup blocked), try to navigate back
+            if (window.opener) {
+              window.close();
+            } else {
+              // Try to go back or close
+              window.history.back();
+            }
+          });
+        }
+      });
+    </script>
+  </body>
+</html>
+

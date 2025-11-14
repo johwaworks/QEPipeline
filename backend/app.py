@@ -1438,6 +1438,28 @@ def create_app():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
     
+    @app.route("/api/shot/<shot_id>/workers", methods=["PUT"])
+    def update_shot_workers(shot_id):
+        """Update shot workers (participants) for a shot"""
+        try:
+            data = request.json
+            shot_workers = data.get("shot_workers", [])
+            
+            if not isinstance(shot_workers, list):
+                return jsonify({"error": "shot_workers must be a list"}), 400
+            
+            success = db.update_shot_workers(shot_id, shot_workers)
+            
+            if success:
+                return jsonify({
+                    "message": "Shot workers updated successfully"
+                }), 200
+            else:
+                return jsonify({"error": "Failed to update shot workers"}), 500
+                
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
     @app.route("/api/shot/<shot_id>/workers-assignment", methods=["PUT"])
     def update_shot_workers_assignment(shot_id):
         """Update workers assignment for a shot"""
@@ -1475,6 +1497,203 @@ def create_app():
     def health():
         """Health check endpoint"""
         return jsonify({"status": "ok"}), 200
+    
+    # Chat Room endpoints
+    @app.route("/api/project/<project_id>/chat/room", methods=["GET"])
+    def get_project_chat_room(project_id):
+        """Get or create chat room for a project"""
+        try:
+            # Check if project exists
+            project = db.get_project(project_id)
+            if not project:
+                return jsonify({"error": "Project not found"}), 404
+            
+            # Get or create chat room
+            chat_room = db.get_project_chat_room(project_id)
+            
+            if chat_room:
+                return jsonify({
+                    "chat_room": chat_room,
+                    "message": "Chat room retrieved successfully"
+                }), 200
+            else:
+                return jsonify({"error": "Failed to get or create chat room"}), 500
+                
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    @app.route("/api/shot/<shot_id>/chat/room", methods=["GET"])
+    def get_shot_chat_room(shot_id):
+        """Get or create chat room for a shot"""
+        try:
+            # Check if shot exists
+            shot = db.get_shot(shot_id)
+            if not shot:
+                return jsonify({"error": "Shot not found"}), 404
+            
+            # Get or create chat room
+            chat_room = db.get_shot_chat_room(shot_id)
+            
+            if chat_room:
+                return jsonify({
+                    "chat_room": chat_room,
+                    "message": "Chat room retrieved successfully"
+                }), 200
+            else:
+                return jsonify({"error": "Failed to get or create chat room"}), 500
+                
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    @app.route("/api/chat-room/<chat_room_id>", methods=["GET"])
+    def get_chat_room(chat_room_id):
+        """Get chat room information"""
+        try:
+            chat_room = db.get_chat_room(chat_room_id)
+            
+            if chat_room:
+                return jsonify({
+                    "chat_room": chat_room,
+                    "message": "Chat room retrieved successfully"
+                }), 200
+            else:
+                return jsonify({"error": "Chat room not found"}), 404
+                
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    @app.route("/api/chat-room/<chat_room_id>/messages", methods=["GET"])
+    def get_chat_room_messages(chat_room_id):
+        """Get messages for a chat room"""
+        try:
+            # Get username from session or request
+            username = session.get("username") or request.args.get("username")
+            
+            limit = request.args.get("limit", 100, type=int)
+            messages = db.get_chat_room_messages(chat_room_id, limit)
+            
+            # Mark messages as read by current user (if logged in)
+            if username:
+                db.mark_chat_room_messages_as_read(chat_room_id, username)
+            
+            return jsonify({
+                "messages": messages,
+                "message": "Messages retrieved successfully"
+            }), 200
+            
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    @app.route("/api/chat-room/<chat_room_id>/messages/read", methods=["PUT"])
+    def mark_messages_as_read(chat_room_id):
+        """Mark all messages in a chat room as read by current user"""
+        try:
+            # Get username from session or request
+            username = session.get("username") or request.json.get("username")
+            if not username:
+                return jsonify({"error": "Username required"}), 401
+            
+            success = db.mark_chat_room_messages_as_read(chat_room_id, username)
+            
+            if success:
+                return jsonify({
+                    "message": "Messages marked as read successfully"
+                }), 200
+            else:
+                return jsonify({"error": "Failed to mark messages as read"}), 500
+                
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    @app.route("/api/chat-room/<chat_room_id>/messages", methods=["POST"])
+    def create_chat_message(chat_room_id):
+        """Create a new message in a chat room"""
+        try:
+            # Get username from session or request
+            username = session.get("username") or request.json.get("username")
+            if not username:
+                return jsonify({"error": "Username required"}), 401
+            
+            # Get message content
+            content = request.json.get("content", "").strip()
+            if not content:
+                return jsonify({"error": "Message content is required"}), 400
+            
+            # Create message
+            message_id = db.create_chat_message(chat_room_id, username, content)
+            
+            if message_id:
+                # Get created message
+                message = db.db.messages.find_one({"_id": ObjectId(message_id)})
+                if message:
+                    message["_id"] = str(message["_id"])
+                    if "chat_room_id" in message:
+                        message["chat_room_id"] = str(message["chat_room_id"])
+                    if "project_id" in message:
+                        message["project_id"] = str(message["project_id"])
+                    if "shot_id" in message:
+                        message["shot_id"] = str(message["shot_id"])
+                    if "created_at" in message:
+                        message["created_at"] = message["created_at"].isoformat()
+                    if "updated_at" in message:
+                        message["updated_at"] = message["updated_at"].isoformat()
+                
+                return jsonify({
+                    "message": message,
+                    "message_text": "Message created successfully"
+                }), 201
+            else:
+                return jsonify({"error": "Failed to create message"}), 500
+                
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    # Personal chat endpoints
+    @app.route("/api/users/<username>/personal-chat-rooms", methods=["GET"])
+    def get_user_personal_chat_rooms(username):
+        """Get all personal chat rooms for a user"""
+        try:
+            chat_rooms = db.get_user_personal_chat_rooms(username)
+            
+            return jsonify({
+                "chat_rooms": chat_rooms,
+                "message": "Personal chat rooms retrieved successfully"
+            }), 200
+            
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    @app.route("/api/personal-chat/<username1>/<username2>", methods=["GET"])
+    def get_personal_chat_room(username1, username2):
+        """Get or create a personal chat room between two users"""
+        try:
+            chat_room = db.get_or_create_personal_chat_room(username1, username2)
+            
+            if chat_room:
+                return jsonify({
+                    "chat_room": chat_room,
+                    "message": "Personal chat room retrieved successfully"
+                }), 200
+            else:
+                return jsonify({"error": "Users are not partners. Please add this user as a partner first."}), 400
+                
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    # Get all chat rooms for a user
+    @app.route("/api/users/<username>/chat-rooms", methods=["GET"])
+    def get_user_all_chat_rooms(username):
+        """Get all chat rooms for a user (project, shot, and personal)"""
+        try:
+            chat_rooms = db.get_user_all_chat_rooms(username)
+            
+            return jsonify({
+                "chat_rooms": chat_rooms,
+                "message": "Chat rooms retrieved successfully"
+            }), 200
+            
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
     
     return app
 
