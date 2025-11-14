@@ -8,6 +8,7 @@ from config import ADMIN_USERNAME
 import os
 from werkzeug.utils import secure_filename
 from bson import ObjectId
+from datetime import datetime, timezone
 
 
 def create_app():
@@ -34,6 +35,16 @@ def create_app():
             "status": "ok",
             "message": "QEPipeline API is running",
             "version": "1.0.0"
+        }), 200
+    
+    @app.route("/api/time", methods=["GET"])
+    def get_server_time():
+        """Get server time for client synchronization"""
+        server_time = datetime.now(timezone.utc)
+        return jsonify({
+            "server_time": server_time.isoformat(),
+            "timestamp": server_time.timestamp(),
+            "timezone": "UTC"
         }), 200
     
     @app.route("/api/register", methods=["POST"])

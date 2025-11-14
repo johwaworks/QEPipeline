@@ -420,7 +420,11 @@ async function checkAdminStatus(username) {
 }
 
 // Initialize dashboard
-function initDashboard() {
+async function initDashboard() {
+  // Initialize time synchronization
+  if (window.TimeSync) {
+    await window.TimeSync.initTimeSync();
+  }
   const username = checkAuth();
   if (!username) return;
   
