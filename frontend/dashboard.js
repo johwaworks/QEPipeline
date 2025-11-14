@@ -1,5 +1,21 @@
 const API_BASE_URL = "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
 
+// Helper function to make API requests with ngrok headers
+async function apiFetch(url, options = {}) {
+  const headers = {
+    'ngrok-skip-browser-warning': 'true',
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+  
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
+  
+  return response;
+}
+
 // Check if user is logged in
 function checkAuth() {
   const loggedIn = localStorage.getItem("qepipeline_logged_in");
@@ -34,7 +50,7 @@ async function loadProjects(username) {
   
   try {
     // Get projects where user is in workers list
-    const response = await fetch(`${API_BASE_URL}/api/projects?username=${encodeURIComponent(username)}`);
+    const response = await apiFetch(`${API_BASE_URL}/api/projects?username=${encodeURIComponent(username)}`);
     
     if (!response.ok && response.status === 0) {
       throw new Error("Cannot connect to backend server. Please make sure the backend is running on http://localhost:5000");
@@ -66,7 +82,7 @@ async function loadProjects(username) {
       <div class="project-item-simple" data-project-id="${project._id}">
         <div class="project-info-left">
           <div class="project-name-simple">${escapeHtml(project.name)}</div>
-          ${project.director ? `<div class="project-director-simple">${escapeHtml(project.director)} 감독??/div>` : ''}
+          ${project.director ? `<div class="project-director-simple">${escapeHtml(project.director)} 감독님</div>` : ''}
         </div>
         <div class="project-status-simple status-badge ${statusClass}">${escapeHtml(status)}</div>
       </div>
@@ -133,7 +149,7 @@ function getStatusColor(status) {
 // Load users for project creation
 async function loadUsers() {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/users`);
+    const response = await apiFetch(`${API_BASE_URL}/api/users`);
     if (!response.ok) {
       throw new Error("Failed to load users");
     }
@@ -317,7 +333,7 @@ async function handleProjectCreation(event) {
   setStatus(statusEl, "Creating project...", "");
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/projects`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/projects`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -364,7 +380,7 @@ function setStatus(element, message, type = "") {
 // Check if user is admin
 async function checkAdminStatus(username) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/profile?username=${encodeURIComponent(username)}`);
+    const response = await apiFetch(`${API_BASE_URL}/api/profile?username=${encodeURIComponent(username)}`);
     if (response.ok) {
       const result = await response.json();
       const profile = result.profile;
@@ -579,7 +595,7 @@ async function loadActiveUsers() {
   }
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/users/active?minutes=5`);
+    const response = await apiFetch(`${API_BASE_URL}/api/users/active?minutes=5`);
     
     if (!response.ok) {
       throw new Error("Failed to load active users");
@@ -625,7 +641,7 @@ async function updateUserActivity() {
   }
   
   try {
-    await fetch(`${API_BASE_URL}/api/users/activity`, {
+    await apiFetch(`${API_BASE_URL}/api/users/activity`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -647,7 +663,7 @@ async function loadPartners(username) {
   
   try {
     // Get partners
-    const partnersResponse = await fetch(`${API_BASE_URL}/api/users/${username}/partners`);
+    const partnersResponse = await apiFetch(`${API_BASE_URL}/api/users/${username}/partners`);
     
     const currentUsername = localStorage.getItem("qepipeline_username");
     let partners = [];
@@ -669,7 +685,7 @@ async function loadPartners(username) {
     if (!currentUserInPartners) {
       try {
         // Get current user info
-        const userResponse = await fetch(`${API_BASE_URL}/api/users/${currentUsername}`);
+        const userResponse = await apiFetch(`${API_BASE_URL}/api/users/${currentUsername}`);
         if (userResponse.ok) {
           const userResult = await userResponse.json();
           const currentUser = userResult.user;
@@ -811,7 +827,7 @@ async function searchUsersForPartner(query) {
   try {
     // Load all users if not already loaded
     if (allUsersList.length === 0) {
-      const response = await fetch(`${API_BASE_URL}/api/users`);
+      const response = await apiFetch(`${API_BASE_URL}/api/users`);
       if (!response.ok) {
         throw new Error("Failed to load users");
       }
@@ -825,13 +841,13 @@ async function searchUsersForPartner(query) {
     let currentPartners = [];
     let pendingRequests = [];
     try {
-      const partnersResponse = await fetch(`${API_BASE_URL}/api/users/${currentUsername}/partners`);
+      const partnersResponse = await apiFetch(`${API_BASE_URL}/api/users/${currentUsername}/partners`);
       if (partnersResponse.ok) {
         const partnersResult = await partnersResponse.json();
         currentPartners = (partnersResult.partners || []).map(p => p.username);
       }
       
-      const requestsResponse = await fetch(`${API_BASE_URL}/api/users/${currentUsername}/partners/requests`);
+      const requestsResponse = await apiFetch(`${API_BASE_URL}/api/users/${currentUsername}/partners/requests`);
       if (requestsResponse.ok) {
         const requestsResult = await requestsResponse.json();
         pendingRequests = (requestsResult.requests || []).map(r => r.username);
@@ -911,7 +927,7 @@ async function addPartner(currentUsername, partnerUsername) {
   try {
     setStatus(statusMessage, "Sending partner request...", "info");
     
-    const response = await fetch(`${API_BASE_URL}/api/users/${currentUsername}/partners/requests`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/users/${currentUsername}/partners/requests`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -944,7 +960,7 @@ async function addPartner(currentUsername, partnerUsername) {
 // Remove partner
 async function removePartner(currentUsername, partnerUsername) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/users/${currentUsername}/partners/${partnerUsername}`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/users/${currentUsername}/partners/${partnerUsername}`, {
       method: "DELETE",
     });
     
@@ -971,7 +987,7 @@ async function loadPartnerRequests(username) {
   }
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/users/${username}/partners/requests`);
+    const response = await apiFetch(`${API_BASE_URL}/api/users/${username}/partners/requests`);
     
     if (!response.ok) {
       if (response.status === 404) {
@@ -1004,7 +1020,7 @@ async function loadPartnerRequests(username) {
             ${role}
           </div>
           <div class="partner-request-actions">
-            <button class="accept-partner-btn" data-requester-username="${request.username}" title="Accept">??/button>
+            <button class="accept-partner-btn" data-requester-username="${request.username}" title="Accept">✓</button>
             <button class="reject-partner-btn" data-requester-username="${request.username}" title="Reject">×</button>
           </div>
         </div>
@@ -1043,7 +1059,7 @@ async function loadPartnerRequests(username) {
 // Accept partner request
 async function acceptPartnerRequest(username, fromUsername) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/users/${username}/partners/requests/${fromUsername}/accept`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/users/${username}/partners/requests/${fromUsername}/accept`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1068,7 +1084,7 @@ async function acceptPartnerRequest(username, fromUsername) {
 // Reject partner request
 async function rejectPartnerRequest(username, fromUsername) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/users/${username}/partners/requests/${fromUsername}/reject`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/users/${username}/partners/requests/${fromUsername}/reject`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1092,7 +1108,7 @@ async function rejectPartnerRequest(username, fromUsername) {
 // Load notifications
 async function loadNotifications(username) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/users/${username}/partners/requests`);
+    const response = await apiFetch(`${API_BASE_URL}/api/users/${username}/partners/requests`);
     
     if (!response.ok) {
       if (response.status === 404) {

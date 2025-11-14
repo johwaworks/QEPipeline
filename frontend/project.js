@@ -1,5 +1,21 @@
 const API_BASE_URL = "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
 
+// Helper function to make API requests with ngrok headers
+async function apiFetch(url, options = {}) {
+  const headers = {
+    'ngrok-skip-browser-warning': 'true',
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+  
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
+  
+  return response;
+}
+
 let currentProjectId = null;
 let currentProject = null;
 
@@ -25,7 +41,7 @@ function getProjectIdFromURL() {
 // Load project details
 async function loadProject(projectId) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/project/${projectId}`);
+    const response = await apiFetch(`${API_BASE_URL}/api/project/${projectId}`);
     
     if (!response.ok) {
       if (response.status === 404) {
@@ -52,7 +68,7 @@ async function loadProject(projectId) {
     const directorEl = document.getElementById("project-director");
     if (directorEl && currentProject) {
       if (currentProject.director && currentProject.director.trim()) {
-        directorEl.textContent = `${currentProject.director} Í∞êÎèÖ??;
+        directorEl.textContent = `${currentProject.director} Í∞êÎèÖÎãò`;
         directorEl.style.display = "";
       } else {
         directorEl.style.display = "none";
@@ -156,7 +172,7 @@ async function loadWorkers() {
     // Get active users to check worker status
     let activeUsers = [];
     try {
-      const activeResponse = await fetch(`${API_BASE_URL}/api/users/active?minutes=5`);
+      const activeResponse = await apiFetch(`${API_BASE_URL}/api/users/active?minutes=5`);
       if (activeResponse.ok) {
         const activeResult = await activeResponse.json();
         activeUsers = (activeResult.users || []).map(u => u.username);
@@ -226,7 +242,7 @@ async function loadShots(projectId) {
     }
     
     console.log("Loading shots for project:", projectId);
-    const response = await fetch(`${API_BASE_URL}/api/project/${projectId}/shots`);
+    const response = await apiFetch(`${API_BASE_URL}/api/project/${projectId}/shots`);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -340,7 +356,7 @@ async function handleShotCreation(event) {
   setStatus(statusEl, "Creating shot...", "");
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/project/${currentProjectId}/shots`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/project/${currentProjectId}/shots`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -509,7 +525,7 @@ async function handleAddWorkers(event) {
   
   try {
     const username = localStorage.getItem("qepipeline_username");
-    const response = await fetch(`${API_BASE_URL}/api/project/${currentProjectId}/workers`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/project/${currentProjectId}/workers`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -554,7 +570,7 @@ async function handleRemoveWorker(username) {
     const updatedWorkers = currentWorkers.filter(w => w !== username);
     
     const username = localStorage.getItem("qepipeline_username");
-    const response = await fetch(`${API_BASE_URL}/api/project/${currentProjectId}/workers`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/project/${currentProjectId}/workers`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -600,7 +616,7 @@ async function handleDeleteRequest(event) {
   setStatus(statusEl, "Submitting deletion request...", "");
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/project/${currentProjectId}/delete`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/project/${currentProjectId}/delete`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -632,7 +648,7 @@ async function handleDeleteRequest(event) {
 // Load users for edit project modal
 async function loadUsers() {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/users`);
+    const response = await apiFetch(`${API_BASE_URL}/api/users`);
     if (!response.ok) {
       throw new Error("Failed to load users");
     }
@@ -844,7 +860,7 @@ async function handleProjectUpdate(event) {
   
   try {
     const username = localStorage.getItem("qepipeline_username");
-    const response = await fetch(`${API_BASE_URL}/api/project/${currentProjectId}`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/project/${currentProjectId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1029,7 +1045,7 @@ async function loadProjectFiles() {
   }
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/project/${currentProjectId}/files`);
+    const response = await apiFetch(`${API_BASE_URL}/api/project/${currentProjectId}/files`);
     
     if (!response.ok) {
       console.error("Failed to load files");
@@ -1134,17 +1150,17 @@ async function loadProjectFiles() {
 
 // Get file icon based on file type
 function getFileIcon(fileType) {
-  if (!fileType) return "?ìÑ";
+  if (!fileType) return "üìÑ";
   
-  if (fileType.startsWith("video/")) return "?é¨";
-  if (fileType.startsWith("audio/")) return "?éµ";
-  if (fileType.startsWith("image/")) return "?ñºÔ∏?;
-  if (fileType.includes("pdf")) return "?ìï";
-  if (fileType.includes("word") || fileType.includes("document")) return "?ìù";
-  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return "?ìä";
-  if (fileType.includes("zip") || fileType.includes("archive")) return "?ì¶";
+  if (fileType.startsWith("video/")) return "üé¨";
+  if (fileType.startsWith("audio/")) return "üéµ";
+  if (fileType.startsWith("image/")) return "üñºÔ∏è";
+  if (fileType.includes("pdf")) return "üìï";
+  if (fileType.includes("word") || fileType.includes("document")) return "üìù";
+  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return "üìä";
+  if (fileType.includes("zip") || fileType.includes("archive")) return "üì¶";
   
-  return "?ìÑ";
+  return "üìÑ";
 }
 
 // Format file size
@@ -1172,7 +1188,7 @@ async function handleProjectFileUpload(files) {
       formData.append("file", file);
       formData.append("username", username);
       
-      const response = await fetch(`${API_BASE_URL}/api/project/${currentProjectId}/files`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/project/${currentProjectId}/files`, {
         method: "POST",
         body: formData,
       });
@@ -1213,7 +1229,7 @@ async function deleteProjectFile(fileId) {
   }
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/project/${currentProjectId}/files/${fileId}`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/project/${currentProjectId}/files/${fileId}`, {
       method: "DELETE",
     });
     
@@ -1239,7 +1255,7 @@ async function updateUserActivity() {
   }
   
   try {
-    await fetch(`${API_BASE_URL}/api/users/activity`, {
+    await apiFetch(`${API_BASE_URL}/api/users/activity`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

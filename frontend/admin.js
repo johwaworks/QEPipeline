@@ -1,5 +1,21 @@
 const API_BASE_URL = "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
 
+// Helper function to make API requests with ngrok headers
+async function apiFetch(url, options = {}) {
+  const headers = {
+    'ngrok-skip-browser-warning': 'true',
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+  
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
+  
+  return response;
+}
+
 let adminUsername = "";
 let adminPassword = "";
 
@@ -81,7 +97,7 @@ async function handleAdminLogin(event) {
 
   try {
     // Test admin credentials by fetching pending registrations
-    const response = await fetch(
+    const response = await apiFetch(
       `${API_BASE_URL}/api/admin/pending?username=${encodeURIComponent(adminUsername)}&password=${encodeURIComponent(adminPassword)}`
     );
 
@@ -114,7 +130,7 @@ async function loadPendingRegistrations() {
   const pendingContent = document.getElementById("pending-list-content");
 
   try {
-    const response = await fetch(
+    const response = await apiFetch(
       `${API_BASE_URL}/api/admin/pending?username=${encodeURIComponent(adminUsername)}&password=${encodeURIComponent(adminPassword)}`
     );
 
@@ -158,7 +174,7 @@ async function loadPendingRegistrations() {
 
 async function approveRegistration(username) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/admin/approve`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/admin/approve`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -197,7 +213,7 @@ async function rejectRegistration(username) {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/admin/approve`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/admin/approve`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

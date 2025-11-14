@@ -1,5 +1,21 @@
 const API_BASE_URL = "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
 
+// Helper function to make API requests with ngrok headers
+async function apiFetch(url, options = {}) {
+  const headers = {
+    'ngrok-skip-browser-warning': 'true',
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+  
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
+  
+  return response;
+}
+
 function setStatus(element, message, type = "") {
   element.textContent = message;
   element.classList.remove("error", "success");
@@ -46,7 +62,7 @@ async function handleLogin(event) {
   setStatus(statusEl, "Authenticating...");
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/login`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
@@ -135,7 +151,7 @@ async function handleRegistration(event) {
   setStatus(statusEl, "Submitting registration...");
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/register`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, username, password, role, birthdate }),

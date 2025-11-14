@@ -1,5 +1,21 @@
 const API_BASE_URL = "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
 
+// Helper function to make API requests with ngrok headers
+async function apiFetch(url, options = {}) {
+  const headers = {
+    'ngrok-skip-browser-warning': 'true',
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+  
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
+  
+  return response;
+}
+
 let currentShotId = null;
 let currentShot = null;
 let currentProjectId = null;
@@ -33,7 +49,7 @@ function escapeHtml(text) {
 // Load shot details
 async function loadShot(shotId) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/shot/${shotId}`);
+    const response = await apiFetch(`${API_BASE_URL}/api/shot/${shotId}`);
     
     if (!response.ok) {
       if (response.status === 404) {
@@ -60,7 +76,7 @@ async function loadShot(shotId) {
     const backLink = document.querySelector(".back-link");
     if (backLink && currentProjectId) {
       backLink.href = `project.html?id=${currentProjectId}`;
-      backLink.textContent = "??Back to Project";
+      backLink.textContent = "‚Üê Back to Project";
     }
     
     // Update page title
@@ -100,7 +116,7 @@ async function loadThumbnail() {
   if (!currentShotId) return;
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}/thumbnail`);
+    const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/thumbnail`);
     if (response.ok) {
       const blob = await response.blob();
       const imageUrl = URL.createObjectURL(blob);
@@ -276,7 +292,7 @@ async function handleRemoveThumbnail() {
   }
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}/thumbnail`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/thumbnail`, {
       method: "DELETE",
     });
     
@@ -393,7 +409,7 @@ async function handleResolutionSave() {
     }
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}/resolution`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/resolution`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -468,7 +484,7 @@ async function handleResolutionLockToggle() {
   const newLockState = !isCurrentlyLocked;
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}/resolution/lock`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/resolution/lock`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -692,7 +708,7 @@ async function handleDurationSave() {
     }
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}/duration`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/duration`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -770,7 +786,7 @@ async function handleDurationLockToggle() {
   const newLockState = !isCurrentlyLocked;
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}/duration/lock`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/duration/lock`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -892,7 +908,7 @@ async function handleDescriptionSave() {
     }
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}/description`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/description`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -962,7 +978,7 @@ async function handleDescriptionLockToggle() {
   const newLockState = !isCurrentlyLocked;
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}/description/lock`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/description/lock`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -1055,7 +1071,7 @@ async function handleShotUpdate(event) {
     
     // After API is implemented, uncomment this:
     /*
-    const response = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1133,7 +1149,7 @@ async function handleShotDeletion(event) {
     
     // After API is implemented, uncomment this:
     /*
-    const response = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}`, {
       method: "DELETE",
     });
     
@@ -1178,7 +1194,7 @@ async function updateUserActivity() {
   }
   
   try {
-    await fetch(`${API_BASE_URL}/api/users/activity`, {
+    await apiFetch(`${API_BASE_URL}/api/users/activity`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1501,7 +1517,7 @@ async function loadShotFiles() {
   }
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}/files`);
+    const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/files`);
     
     if (!response.ok) {
       console.error("Failed to load files");
@@ -1606,17 +1622,17 @@ async function loadShotFiles() {
 
 // Get file icon based on file type
 function getFileIcon(fileType) {
-  if (!fileType) return "?ìÑ";
+  if (!fileType) return "üìÑ";
   
-  if (fileType.startsWith("video/")) return "?é¨";
-  if (fileType.startsWith("audio/")) return "?éµ";
-  if (fileType.startsWith("image/")) return "?ñºÔ∏?;
-  if (fileType.includes("pdf")) return "?ìï";
-  if (fileType.includes("word") || fileType.includes("document")) return "?ìù";
-  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return "?ìä";
-  if (fileType.includes("zip") || fileType.includes("archive")) return "?ì¶";
+  if (fileType.startsWith("video/")) return "üé¨";
+  if (fileType.startsWith("audio/")) return "üéµ";
+  if (fileType.startsWith("image/")) return "üñºÔ∏è";
+  if (fileType.includes("pdf")) return "üìï";
+  if (fileType.includes("word") || fileType.includes("document")) return "üìù";
+  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return "üìä";
+  if (fileType.includes("zip") || fileType.includes("archive")) return "üì¶";
   
-  return "?ìÑ";
+  return "üìÑ";
 }
 
 // Format file size
@@ -1644,7 +1660,7 @@ async function handleShotFileUpload(files) {
       formData.append("file", file);
       formData.append("username", username);
       
-      const response = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}/files`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/files`, {
         method: "POST",
         body: formData,
       });
@@ -1685,7 +1701,7 @@ async function deleteShotFile(fileId) {
   }
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}/files/${fileId}`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/files/${fileId}`, {
       method: "DELETE",
     });
     
@@ -1732,7 +1748,7 @@ async function loadProjectInfo() {
   }
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/project/${currentProjectId}`);
+    const response = await apiFetch(`${API_BASE_URL}/api/project/${currentProjectId}`);
     if (!response.ok) {
       console.error("Failed to load project info");
       return;
@@ -1811,7 +1827,7 @@ async function loadProjectInfo() {
           } else {
             // Fallback: fetch owner info
             try {
-              const userResponse = await fetch(`${API_BASE_URL}/api/users/${currentProject.owner}`);
+              const userResponse = await apiFetch(`${API_BASE_URL}/api/users/${currentProject.owner}`);
               if (userResponse.ok) {
                 const userResult = await userResponse.json();
                 if (userResult.user) {
@@ -1833,7 +1849,7 @@ async function loadProjectInfo() {
       for (const username of allUsernames) {
         if (!userMap.has(username)) {
           try {
-            const userResponse = await fetch(`${API_BASE_URL}/api/users/${username}`);
+            const userResponse = await apiFetch(`${API_BASE_URL}/api/users/${username}`);
             if (userResponse.ok) {
               const userResult = await userResponse.json();
               if (userResult.user) {
@@ -1896,7 +1912,7 @@ async function loadWorkersAssignment() {
     await loadProjectInfo();
     
     // Get shot data with workers assignment
-    const shotResponse = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}`);
+    const shotResponse = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}`);
     if (!shotResponse.ok) {
       container.innerHTML = '<div class="empty-state">Failed to load workers assignment.</div>';
       return;
@@ -2013,7 +2029,7 @@ function renderPartSelector(workersAssignment) {
       // Update arrow
       const arrow = button.querySelector(".part-selector-button-arrow");
       if (arrow) {
-        arrow.textContent = isVisible ? "?? : "??;
+        arrow.textContent = isVisible ? "‚ñº" : "‚ñ≤";
       }
     });
     
@@ -2027,7 +2043,7 @@ function renderPartSelector(workersAssignment) {
           dropdown.style.display = "none";
           const arrow = button.querySelector(".part-selector-button-arrow");
           if (arrow) {
-            arrow.textContent = "??;
+            arrow.textContent = "‚ñº";
           }
         }
       });
@@ -2424,12 +2440,12 @@ function setupWorkersAssignmentToggle() {
     if (isVisible) {
       content.style.display = "none";
       if (icon) {
-        icon.textContent = "??;
+        icon.textContent = "‚ñ∂";
       }
     } else {
       content.style.display = "block";
       if (icon) {
-        icon.textContent = "??;
+        icon.textContent = "‚ñº";
       }
     }
   });
@@ -2451,7 +2467,7 @@ async function saveWorkerTask(username, taskDescription) {
   
   try {
     // Get current workers assignment
-    const shotResponse = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}`);
+    const shotResponse = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}`);
     if (!shotResponse.ok) {
       console.error("Failed to load shot data");
       return;
@@ -2475,7 +2491,7 @@ async function saveWorkerTask(username, taskDescription) {
     }
     
     // Save updated workers assignment
-    const response = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}/workers-assignment`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/workers-assignment`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -2538,7 +2554,7 @@ async function saveWorkersAssignment() {
     });
     
     // Save to backend
-    const response = await fetch(`${API_BASE_URL}/api/shot/${currentShotId}/workers-assignment`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/workers-assignment`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

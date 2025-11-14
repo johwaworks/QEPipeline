@@ -1,5 +1,21 @@
 const API_BASE_URL = "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
 
+// Helper function to make API requests with ngrok headers
+async function apiFetch(url, options = {}) {
+  const headers = {
+    'ngrok-skip-browser-warning': 'true',
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+  
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
+  
+  return response;
+}
+
 // Check if user is logged in
 function checkAuth() {
   const loggedIn = localStorage.getItem("qepipeline_logged_in");
@@ -42,7 +58,7 @@ async function loadProfile(username) {
   const profileContent = document.getElementById("profile-content");
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/profile?username=${encodeURIComponent(username)}`);
+    const response = await apiFetch(`${API_BASE_URL}/api/profile?username=${encodeURIComponent(username)}`);
     
     if (!response.ok && response.status === 0) {
       throw new Error("Cannot connect to backend server. Please make sure the backend is running on http://localhost:5000");
