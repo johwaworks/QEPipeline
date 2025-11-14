@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QEPipeline - Project</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="dashboard.css" />
+    <link rel="stylesheet" href="project.css" />
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <div class="project-header">
+        <div class="project-header-left">
+          <a href="dashboard.html" class="back-link">← Back to Dashboard</a>
+          <div class="project-header-divider"></div>
+          <div class="project-title-row">
+            <div class="project-title-with-vfx">
+              <div class="project-title-wrapper">
+                <span class="project-subtitle">Project</span>
+                <div class="project-title-line">
+                  <h1 class="project-title" id="project-title">Project Name</h1>
+                  <span class="vfx-supervisor-inline" id="vfx-supervisors"></span>
+                </div>
+              </div>
+            </div>
+            <button id="edit-project-btn" class="edit-project-btn">Edit Project</button>
+            <button id="delete-project-btn" class="delete-project-btn">Delete Project</button>
+          </div>
+          <div class="project-meta">
+            <span class="project-director" id="project-director"></span>
+            <span class="status-badge" id="project-status"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="project-content">
+        <div class="project-main-content">
+          <div class="shots-section">
+            <div class="shots-title-row">
+              <h2 class="shots-title">Shots</h2>
+              <button id="new-shot-btn" class="new-shot-btn">+ New Shot</button>
+            </div>
+            <div class="divider"></div>
+            
+            <div id="shots-list" class="shots-list">
+              <div class="loading">Loading shots...</div>
+            </div>
+          </div>
+          
+          <div class="workers-section">
+            <div class="workers-title-row">
+              <h2 class="workers-title">Workers</h2>
+              <button id="add-worker-btn" class="add-worker-btn">+ Add Worker</button>
+            </div>
+            <div class="divider"></div>
+            
+            <div id="workers-list" class="workers-list">
+              <div class="loading">Loading workers...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- New Shot Modal -->
+    <div id="shot-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Create New Shot</h2>
+          <button class="modal-close" id="shot-modal-close">&times;</button>
+        </div>
+        <form id="shot-form">
+          <label class="field">
+            <span>Shot Name</span>
+            <input type="text" id="shot-name" required placeholder="Enter shot name (e.g., SH001)" />
+          </label>
+
+          <label class="field">
+            <span>Description (Optional)</span>
+            <textarea id="shot-description" rows="3" placeholder="Enter shot description"></textarea>
+          </label>
+
+          <div class="modal-actions">
+            <button type="button" class="cta secondary" id="cancel-shot">Cancel</button>
+            <button type="submit" class="cta">Create Shot</button>
+          </div>
+          <p class="form-status" id="shot-status-message"></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Project Modal -->
+    <div id="edit-project-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Edit Project</h2>
+          <button class="modal-close" id="edit-project-modal-close">&times;</button>
+        </div>
+        <form id="edit-project-form">
+          <label class="field">
+            <span>Project Name</span>
+            <input type="text" id="edit-project-name" required placeholder="Enter project name" />
+          </label>
+
+          <label class="field">
+            <span>Director</span>
+            <input type="text" id="edit-project-director" placeholder="Enter director name" />
+          </label>
+
+          <label class="field">
+            <span>Deadline</span>
+            <input type="date" id="edit-project-deadline" />
+          </label>
+
+          <label class="field">
+            <span>Production Status</span>
+            <select id="edit-project-status" required>
+              <option value="Pre-Production">Pre-Production</option>
+              <option value="Production">Production</option>
+              <option value="Post-Production">Post-Production</option>
+              <option value="Finish">Finish</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>VFX Supervisors (Select Multiple)</span>
+            <div class="multi-select-container" id="edit-vfx-supervisors-container">
+              <div class="loading">Loading users...</div>
+            </div>
+          </label>
+
+          <label class="field">
+            <span>Team Members (Select Multiple)</span>
+            <div class="multi-select-container" id="edit-members-container">
+              <div class="loading">Loading users...</div>
+            </div>
+          </label>
+
+          <label class="field">
+            <span>Description (Optional)</span>
+            <textarea id="edit-project-description" rows="3" placeholder="Enter project description"></textarea>
+          </label>
+
+          <div class="modal-actions">
+            <button type="button" class="cta secondary" id="cancel-edit-project">Cancel</button>
+            <button type="submit" class="cta">Update Project</button>
+          </div>
+          <p class="form-status" id="edit-project-status-message"></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add Worker Modal -->
+    <div id="add-worker-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Add Worker</h2>
+          <button class="modal-close" id="add-worker-modal-close">&times;</button>
+        </div>
+        <form id="add-worker-form">
+          <label class="field">
+            <span>Select Workers (Select Multiple)</span>
+            <div class="multi-select-container" id="workers-container">
+              <div class="loading">Loading users...</div>
+            </div>
+          </label>
+
+          <div class="modal-actions">
+            <button type="button" class="cta secondary" id="cancel-add-worker">Cancel</button>
+            <button type="submit" class="cta">Add Workers</button>
+          </div>
+          <p class="form-status" id="add-worker-status-message"></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- Delete Project Confirmation Modal -->
+    <div id="delete-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Delete Project</h2>
+          <button class="modal-close" id="delete-modal-close">&times;</button>
+        </div>
+        <div class="delete-warning">
+          <p><strong>Warning:</strong> This action cannot be undone.</p>
+          <p>Deleting this project will remove all associated shots and data.</p>
+          <p><strong>Your deletion request will be sent to admin for approval.</strong></p>
+        </div>
+        <form id="delete-form">
+          <label class="field">
+            <span>Type project name to confirm</span>
+            <input type="text" id="confirm-project-name" required placeholder="Enter project name" />
+          </label>
+
+          <div class="modal-actions">
+            <button type="button" class="cta secondary" id="cancel-delete">Cancel</button>
+            <button type="submit" class="cta delete-confirm-btn">Request Deletion</button>
+          </div>
+          <p class="form-status" id="delete-status-message"></p>
+        </form>
+      </div>
+    </div>
+
+    <script src="logo-handler.js"></script>
+    <script src="project.js"></script>
+  </body>
+</html>
+

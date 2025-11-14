@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QEPipeline - Shot</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="dashboard.css" />
+    <link rel="stylesheet" href="shot.css" />
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <div class="shot-header">
+        <div class="shot-header-left">
+          <a href="dashboard.html" class="back-link">← Back to Dashboard</a>
+          <div class="shot-header-divider"></div>
+          <div class="shot-title-row">
+            <div class="shot-title-with-project">
+              <div class="shot-title-wrapper">
+                <span class="shot-subtitle">Shot</span>
+                <h1 class="shot-title" id="shot-title">Shot Name</h1>
+              </div>
+            </div>
+            <button id="edit-shot-btn" class="edit-shot-btn">Edit Shot</button>
+            <button id="delete-shot-btn" class="delete-shot-btn">Delete Shot</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="shot-content">
+        <div class="shot-main-content">
+          <div class="shot-thumbnail-section">
+            <div class="thumbnail-upload-area" id="thumbnail-upload-area">
+              <input type="file" id="thumbnail-file-input" accept="image/*" style="display: none;" />
+              <div class="thumbnail-preview-container" id="thumbnail-preview-container">
+                <img id="thumbnail-preview" src="" alt="Thumbnail" style="display: none;" />
+                <div class="thumbnail-placeholder" id="thumbnail-placeholder">
+                  <div class="thumbnail-placeholder-icon">📷</div>
+                  <div class="thumbnail-placeholder-text">Click to upload or paste image (Ctrl+V)</div>
+                  <div class="thumbnail-placeholder-hint">Supported formats: JPG, PNG, GIF, WebP</div>
+                </div>
+              </div>
+              <div class="thumbnail-upload-progress" id="thumbnail-upload-progress" style="display: none;">
+                <div class="progress-bar">
+                  <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <span class="progress-text" id="progress-text">Uploading...</span>
+              </div>
+              <button type="button" class="thumbnail-remove-btn" id="thumbnail-remove-btn" style="display: none;">Remove Thumbnail</button>
+            </div>
+            <div class="shot-info-column">
+              <div class="information-section">
+                <div class="information-title">Information</div>
+                <div class="resolution-input-area">
+                <div class="input-header">
+                  <label class="resolution-label">Resolution</label>
+                  <button type="button" class="lock-btn" id="resolution-lock-btn" title="Lock/Unlock Resolution">
+                    <svg class="lock-icon" id="resolution-lock-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <circle cx="12" cy="16" r="1"></circle>
+                      <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                    </svg>
+                  </button>
+                </div>
+                <div class="resolution-input-group">
+                  <input type="number" id="resolution-width" class="resolution-input" placeholder="Width" min="1" step="1" />
+                  <span class="resolution-separator">×</span>
+                  <input type="number" id="resolution-height" class="resolution-input" placeholder="Height" min="1" step="1" />
+                </div>
+                <span class="resolution-status" id="resolution-status"></span>
+              </div>
+              <div class="duration-input-area">
+                <div class="input-header">
+                  <label class="duration-label">Duration</label>
+                  <button type="button" class="lock-btn" id="duration-lock-btn" title="Lock/Unlock Duration">
+                    <svg class="lock-icon" id="duration-lock-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <circle cx="12" cy="16" r="1"></circle>
+                      <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                    </svg>
+                  </button>
+                </div>
+                <div class="duration-input-group">
+                  <input type="number" id="duration-start" class="duration-input" placeholder="Start" min="0" step="1" />
+                  <span class="duration-separator">-</span>
+                  <input type="number" id="duration-end" class="duration-input" placeholder="End" min="0" step="1" />
+                  <span class="duration-separator">|</span>
+                  <input type="number" id="duration-total" class="duration-input" placeholder="Total" min="0" step="1" />
+                </div>
+                <span class="duration-status" id="duration-status"></span>
+              </div>
+              <div class="description-input-area">
+                <div class="input-header">
+                  <label class="description-label">Description</label>
+                  <button type="button" class="lock-btn" id="description-lock-btn" title="Lock/Unlock Description">
+                    <svg class="lock-icon" id="description-lock-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <circle cx="12" cy="16" r="1"></circle>
+                      <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                    </svg>
+                  </button>
+                </div>
+                <textarea id="description-input" class="description-input" placeholder="Enter shot description..." rows="6"></textarea>
+                <span class="description-status" id="description-status"></span>
+              </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="workers-assignment-section">
+            <div class="workers-assignment-title-row">
+              <button id="workers-assignment-toggle" class="workers-assignment-toggle-btn" title="Toggle Workers Assignment">
+                <span class="toggle-icon">▼</span>
+              </button>
+              <h2 class="workers-assignment-title">Workers Assignment</h2>
+            </div>
+            <div class="divider"></div>
+            <div id="workers-assignment-content" class="workers-assignment-content" style="display: block;">
+              <div class="workers-assignment-part-selector">
+                <button id="part-selector-button" class="part-selector-button">
+                  <span class="part-selector-button-text">Select Parts</span>
+                  <span class="part-selector-button-arrow">▼</span>
+                </button>
+                <div id="part-selector-dropdown" class="part-selector-dropdown" style="display: none;">
+                  <div id="part-selector-list" class="part-selector-list">
+                    <div class="loading">Loading parts...</div>
+                  </div>
+                </div>
+              </div>
+              <div id="workers-assignment-table-container" class="workers-assignment-table-container">
+                <div class="loading">Loading workers assignment...</div>
+              </div>
+              <div class="workers-assignment-summary-section">
+                <div class="workers-assignment-tabs">
+                  <button class="assignment-tab active" data-tab="summary">Assignment Summary</button>
+                  <button class="assignment-tab" data-tab="tasks">Task Descriptions</button>
+                </div>
+                <div class="divider"></div>
+                <div id="assignment-tab-content" class="assignment-tab-content">
+                  <div id="workers-assignment-summary-container" class="assignment-tab-panel active">
+                    <div class="loading">Loading assignment summary...</div>
+                  </div>
+                  <div id="workers-assignment-tasks-container" class="assignment-tab-panel" style="display: none;">
+                    <div class="loading">Loading task descriptions...</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Shot Modal -->
+    <div id="edit-shot-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Edit Shot</h2>
+          <button class="modal-close" id="edit-shot-modal-close">&times;</button>
+        </div>
+        <form id="edit-shot-form">
+          <label class="field">
+            <span>Shot Name</span>
+            <input type="text" id="edit-shot-name" required placeholder="Enter shot name" />
+          </label>
+
+          <label class="field">
+            <span>Description (Optional)</span>
+            <textarea id="edit-shot-description" rows="3" placeholder="Enter shot description"></textarea>
+          </label>
+
+          <div class="modal-actions">
+            <button type="button" class="cta secondary" id="cancel-edit-shot">Cancel</button>
+            <button type="submit" class="cta">Update Shot</button>
+          </div>
+          <p class="form-status" id="edit-shot-status-message"></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- Delete Shot Confirmation Modal -->
+    <div id="delete-shot-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Delete Shot</h2>
+          <button class="modal-close" id="delete-shot-modal-close">&times;</button>
+        </div>
+        <div class="delete-warning">
+          <p><strong>Warning:</strong> This action cannot be undone.</p>
+          <p>Deleting this shot will remove all associated data.</p>
+        </div>
+        <form id="delete-shot-form">
+          <label class="field">
+            <span>Type shot name to confirm</span>
+            <input type="text" id="confirm-shot-name" required placeholder="Enter shot name" />
+          </label>
+
+          <div class="modal-actions">
+            <button type="button" class="cta secondary" id="cancel-delete-shot">Cancel</button>
+            <button type="submit" class="cta delete-confirm-btn">Delete Shot</button>
+          </div>
+          <p class="form-status" id="delete-shot-status-message"></p>
+        </form>
+      </div>
+    </div>
+
+    <script src="logo-handler.js"></script>
+    <script src="shot.js"></script>
+  </body>
+</html>
+

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QEPipeline - Admin Project Deletion</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <h1><a href="dashboard.html" class="logo-link" id="logo-link">QEPipeline</a></h1>
+      </header>
+
+      <main class="panels">
+        <section class="panel" id="admin-panel">
+          <h2>Project Deletion Approval</h2>
+          <p class="panel-desc">
+            Review and approve pending project deletion requests
+          </p>
+
+          <form id="admin-login-form" style="display: none;">
+            <label class="field">
+              <span>Admin Username</span>
+              <input type="text" name="admin_username" id="admin-username" autocomplete="username" placeholder="Enter admin username" required />
+            </label>
+
+            <label class="field">
+              <span>Admin Password</span>
+              <input type="password" name="admin_password" id="admin-password" autocomplete="current-password" placeholder="Enter admin password" required />
+            </label>
+
+            <button type="submit" class="cta">Access Admin Panel</button>
+            <p class="form-status" id="admin-login-status"></p>
+          </form>
+
+          <div id="pending-deletions" class="pending-list">
+            <h3>Pending Deletion Requests</h3>
+            <div id="deletions-list-content">
+              <div class="loading">Loading...</div>
+            </div>
+          </div>
+
+          <div class="register-link">
+            <button type="button" class="register-btn" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="logo-handler.js"></script>
+    <script src="admin-project-deletion.js"></script>
+  </body>
+</html>
+

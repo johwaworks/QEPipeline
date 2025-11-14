@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QEPipeline Login</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <h1><a href="index.html" class="logo-link" id="logo-link">QEPipeline</a></h1>
+      </header>
+
+      <main class="panels">
+        <section class="panel" id="login-panel">
+          <h2>Login</h2>
+          <form id="login-form">
+            <label class="field">
+              <span>User ID</span>
+              <input type="text" name="username" id="login-username" autocomplete="username" placeholder="Enter your ID" required />
+            </label>
+
+            <label class="field">
+              <span>Password</span>
+              <input type="password" name="password" id="login-password" autocomplete="current-password" placeholder="Enter your password" required />
+            </label>
+
+            <label class="toggle">
+              <input type="checkbox" id="remember-id" />
+              <span>Remember ID</span>
+            </label>
+
+            <button type="submit" class="cta">Login</button>
+            <p class="form-status" id="login-status"></p>
+          </form>
+
+          <div class="register-link">
+            <button type="button" class="register-btn" onclick="window.location.href='register.html'">Register</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="logo-handler.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>
+

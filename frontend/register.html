@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QEPipeline Register</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell register-shell">
+      <header class="hero">
+        <h1><a href="index.html" class="logo-link" id="logo-link">QEPipeline</a></h1>
+      </header>
+
+      <main class="panels">
+        <section class="panel register-panel" id="register-panel">
+          <h2>Register</h2>
+          <p class="panel-desc">
+            New user? Request access below.
+          </p>
+          <form id="register-form" autocomplete="off">
+            <label class="field">
+              <span>Name</span>
+              <input type="text" name="name" id="register-name" autocomplete="off" placeholder="Your full name" required />
+            </label>
+
+            <label class="field">
+              <span>User ID</span>
+              <input type="text" name="username" id="register-username" autocomplete="off" placeholder="Choose your ID" required />
+            </label>
+
+            <label class="field">
+              <span>Password</span>
+              <input type="password" name="password" id="register-password" autocomplete="new-password" placeholder="Choose your password" required />
+            </label>
+
+            <label class="field">
+              <span>Roles (Select Multiple)</span>
+              <select name="role" id="register-role" multiple required>
+                <option value="Director">Director</option>
+                <option value="Assistant Director">Assistant Director</option>
+                <option value="VFX Supervisor">VFX Supervisor</option>
+                <option value="FX Artist">FX Artist</option>
+                <option value="TD">TD</option>
+                <option value="3D Generalist">3D Generalist</option>
+                <option value="Compositor">Compositor</option>
+              </select>
+              <small class="field-hint">Hold Ctrl (Windows) or Cmd (Mac) to select multiple roles</small>
+            </label>
+
+            <label class="field">
+              <span>Birthdate</span>
+              <input type="date" name="birthdate" id="register-birthdate" autocomplete="off" class="birthdate-input" required />
+            </label>
+
+            <button type="submit" class="cta secondary">Request Access</button>
+            <p class="form-status" id="register-status"></p>
+          </form>
+
+          <div class="info">
+            <p><strong>Note:</strong> Registration requires admin approval via <code>admin</code> account.</p>
+          </div>
+
+          <div class="register-link">
+            <button type="button" class="register-btn" onclick="window.location.href='index.html'">Back to Login</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="logo-handler.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>
+

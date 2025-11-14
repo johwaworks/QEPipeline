@@ -1,0 +1,433 @@
+:root {
+  /* English/Latin characters: Consolas (monospace) */
+  /* Korean characters: 둥근모꼴 (fallback to 맑은 고딕) */
+  font-family: "Consolas", "Monaco", "Courier New", "둥근모꼴", "DungGeunMo", "맑은 고딕", "Malgun Gothic", monospace;
+  line-height: 1.5;
+  font-size: 16px;
+  --bg: #000000;
+  --surface: #ffffff;
+  --text-primary: #000000;
+  --text-secondary: #666666;
+  --accent: #000000;
+  --danger: #ff0000;
+  background-color: var(--bg);
+  color: var(--text-primary);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #000000;
+  text-align: center;
+}
+
+.app-shell {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  padding: 0 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.register-shell {
+  max-width: 600px;
+}
+
+.register-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.register-panel h2,
+.register-panel .panel-desc,
+.register-panel .info,
+.register-panel .register-link,
+.register-panel .form-status {
+  grid-column: 1 / -1;
+}
+
+.register-panel form {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.register-panel form .field {
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .register-panel {
+    grid-template-columns: 1fr;
+  }
+  
+  .register-panel form {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 40px;
+  width: 100%;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 56px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #ffffff;
+  text-align: center !important;
+  display: block;
+  width: 100%;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Helvetica Neue", Arial, sans-serif;
+}
+
+.logo-link {
+  color: #ffffff;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Helvetica Neue", Arial, sans-serif;
+  text-align: center !important;
+  display: block;
+  width: 100%;
+}
+
+.logo-link:hover {
+  opacity: 0.8;
+}
+
+.logo-link:active {
+  opacity: 0.6;
+}
+
+.panels {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.panel {
+  background: transparent;
+  padding: 40px 32px;
+  text-align: center;
+  width: 100%;
+}
+
+.panel h2 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-align: center;
+}
+
+.panel-desc {
+  font-size: 12px;
+  color: #cccccc;
+  margin: 0 0 24px 0;
+  text-align: center;
+  width: 100%;
+}
+
+.panel form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  text-align: center;
+}
+
+.field span {
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.field input {
+  border: 2px solid #ffffff;
+  background: transparent;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 14px;
+  transition: all 0.15s ease;
+  outline: none;
+  width: 100%;
+  text-align: center !important;
+}
+
+.field input:focus {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #ffffff;
+}
+
+.field input::placeholder {
+  color: #999999;
+  font-weight: 400;
+  text-align: center;
+}
+
+.field select {
+  border: 2px solid #ffffff;
+  background: transparent;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 14px;
+  transition: all 0.15s ease;
+  outline: none;
+  width: 100%;
+  text-align: center;
+  text-align-last: center;
+  cursor: pointer;
+}
+
+.field select option {
+  background: #000000;
+  color: #ffffff;
+  text-align: center;
+}
+
+.field select:focus {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #ffffff;
+}
+
+.field input[type="date"] {
+  color-scheme: dark;
+}
+
+.birthdate-input {
+  font-weight: 900 !important;
+  font-size: 16px !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase;
+}
+
+.field select[multiple] {
+  min-height: 120px;
+  padding: 8px;
+}
+
+.field select[multiple] option {
+  padding: 8px;
+  margin: 2px 0;
+}
+
+.field-hint {
+  display: block;
+  font-size: 10px;
+  color: #999999;
+  margin-top: 4px;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.success-message {
+  text-align: center;
+  padding: 32px 0;
+}
+
+.success-icon {
+  font-size: 64px;
+  color: #ffffff;
+  margin: 0 0 16px 0;
+  font-weight: 900;
+}
+
+.success-text {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  color: #ffffff;
+}
+
+.success-desc {
+  font-size: 13px;
+  color: #cccccc;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  width: 100%;
+}
+
+.toggle input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #ffffff;
+}
+
+.cta {
+  border: 2px solid transparent;
+  padding: 14px 24px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: #ffffff;
+  color: #000000;
+  transition: all 0.15s ease;
+  outline: none;
+  width: 100%;
+  text-align: center;
+}
+
+.cta:hover {
+  border-color: rgba(0, 0, 0, 0.3);
+  background: #ffffff;
+  color: #000000;
+}
+
+.cta.secondary {
+  background: transparent;
+  color: #ffffff;
+  border: 2px solid transparent;
+  width: 100%;
+  text-align: center;
+}
+
+.cta.secondary:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  color: #ffffff;
+}
+
+.form-status {
+  min-height: 18px;
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  width: 100%;
+}
+
+.form-status.error {
+  color: #ff6666;
+}
+
+.form-status.success {
+  color: #ffffff;
+}
+
+.info {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 14px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #cccccc;
+  margin-top: 8px;
+  text-align: center;
+  width: 100%;
+}
+
+.info p {
+  margin: 0 0 6px 0;
+}
+
+.info p:last-child {
+  margin-bottom: 0;
+}
+
+.info code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 2px;
+  font-family: monospace;
+  font-size: 9px;
+}
+
+.register-link {
+  margin-top: 20px;
+  text-align: center;
+  width: 100%;
+}
+
+.register-btn {
+  border: 2px solid transparent;
+  padding: 12px 24px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: transparent;
+  color: #ffffff;
+  transition: all 0.15s ease;
+  outline: none;
+  width: 100%;
+  text-align: center;
+}
+
+.register-btn:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  color: #ffffff;
+}
+
+#register-panel {
+  border-top: 0;
+  margin-top: 0;
+}
+
+@media (max-width: 480px) {
+  .app-shell {
+    padding: 0 16px;
+  }
+
+  .hero h1 {
+    font-size: 36px;
+  }
+
+  .panel {
+    padding: 36px 28px;
+  }
+}
+

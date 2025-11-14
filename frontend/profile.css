@@ -1,0 +1,103 @@
+.profile-section {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.profile-section h2 {
+  margin: 0 0 32px 0;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.profile-content {
+  background: transparent;
+  border: 2px solid #ffffff;
+  padding: 32px;
+}
+
+.profile-item {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.profile-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.profile-label {
+  font-size: 11px;
+  color: #999999;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.profile-value {
+  font-size: 18px;
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.profile-value.empty {
+  color: #666666;
+  font-style: italic;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #999999;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.error {
+  text-align: center;
+  padding: 40px;
+  color: #ff0000;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.logout-btn {
+  border: 2px solid transparent;
+  padding: 10px 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: transparent;
+  color: #ffffff;
+  transition: all 0.2s ease;
+  outline: none;
+  min-width: 100px;
+}
+
+.logout-btn:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  color: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .profile-content {
+    padding: 24px;
+  }
+  
+  .profile-value {
+    font-size: 16px;
+  }
+}
+

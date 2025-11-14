@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QEPipeline - Dashboard</title>
+    <link rel="stylesheet" href="styles.css?v=9" />
+    <link rel="stylesheet" href="dashboard.css?v=9" />
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <div class="dashboard-layout">
+        <!-- Left Side: Projects -->
+        <aside class="dashboard-left">
+          <h1 class="dashboard-title"><a href="dashboard.html" class="logo-link" id="logo-link">QEPipeline</a></h1>
+          <h2 class="projects-title">Projects</h2>
+          <div class="divider"></div>
+          
+          <div id="projects-list" class="projects-list-simple">
+            <div class="loading">Loading projects...</div>
+          </div>
+          
+          <button id="new-project-btn" class="new-project-btn-simple">+ New Project</button>
+        </aside>
+
+        <!-- Right Side: User Info -->
+        <aside class="dashboard-right">
+          <div class="user-section">
+            <div class="user-info-row">
+              <div class="notification-container">
+                <button id="notification-btn" class="notification-btn" title="Notifications">
+                  <span class="notification-icon">🔔</span>
+                  <span id="notification-badge" class="notification-badge" style="display: none;">0</span>
+                </button>
+                <div id="notification-dropdown" class="notification-dropdown" style="display: none;">
+                  <div class="notification-header">
+                    <h3 class="notification-title">Notifications</h3>
+                    <button id="close-notifications" class="close-notifications-btn">×</button>
+                  </div>
+                  <div id="notification-list" class="notification-list">
+                    <div class="loading">Loading notifications...</div>
+                  </div>
+                </div>
+              </div>
+              <a href="profile.html" class="username-box" id="username-display"></a>
+            </div>
+            <button id="logout-btn" class="logout-box">Logout</button>
+          </div>
+          
+          <div style="display: flex; flex-direction: column; gap: 12px; align-items: flex-end;">
+            <a href="admin-approval.html" id="admin-link" class="admin-link-simple" style="display: none;">User Approvals</a>
+            <a href="admin-project-deletion.html" id="admin-deletion-link" class="admin-link-simple" style="display: none;">Project Deletions</a>
+          </div>
+          
+          <div class="partners-section">
+            <div class="partners-header">
+              <h3 class="partners-title">Partners</h3>
+              <button id="add-partner-btn" class="add-partner-btn" title="Add Partner">+</button>
+            </div>
+            <div id="partners-list" class="partners-list">
+              <div class="loading">Loading partners...</div>
+            </div>
+          </div>
+          
+        </aside>
+      </div>
+    </div>
+    
+    <!-- Add Partner Modal -->
+    <div id="add-partner-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Add Partner</h2>
+          <button class="modal-close" id="add-partner-modal-close">&times;</button>
+        </div>
+        <form id="add-partner-form">
+          <label class="field">
+            <span>Search User</span>
+            <input type="text" id="partner-search-input" placeholder="Enter username..." autocomplete="off" />
+            <div id="partner-search-results" class="partner-search-results" style="display: none;"></div>
+          </label>
+          
+          <div class="modal-actions">
+            <button type="button" class="cta secondary" id="cancel-add-partner">Cancel</button>
+          </div>
+          <p class="form-status" id="add-partner-status-message"></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- Project Creation Modal -->
+    <div id="project-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Create New Project</h2>
+          <button class="modal-close" id="modal-close">&times;</button>
+        </div>
+        <form id="project-form">
+          <label class="field">
+            <span>Project Name</span>
+            <input type="text" id="project-name" required placeholder="Enter project name" />
+          </label>
+
+          <label class="field">
+            <span>Director</span>
+            <input type="text" id="project-director" required placeholder="Enter director name" />
+          </label>
+
+          <label class="field">
+            <span>Deadline</span>
+            <input type="date" id="project-deadline" required />
+          </label>
+
+          <label class="field">
+            <span>Production Status</span>
+            <select id="project-status" required>
+              <option value="Pre-Production">Pre-Production</option>
+              <option value="Production">Production</option>
+              <option value="Post-Production">Post-Production</option>
+              <option value="Finish">Finish</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>VFX Supervisors (Select Multiple)</span>
+            <div class="multi-select-container" id="vfx-supervisors-container">
+              <div class="loading">Loading users...</div>
+            </div>
+          </label>
+
+          <label class="field">
+            <span>Team Members (Select Multiple)</span>
+            <div class="multi-select-container" id="members-container">
+              <div class="loading">Loading users...</div>
+            </div>
+          </label>
+
+          <label class="field">
+            <span>Description (Optional)</span>
+            <textarea id="project-description" rows="3" placeholder="Enter project description"></textarea>
+          </label>
+
+          <div class="modal-actions">
+            <button type="button" class="cta secondary" id="cancel-project">Cancel</button>
+            <button type="submit" class="cta">Create Project</button>
+          </div>
+          <p class="form-status" id="project-status-message"></p>
+        </form>
+      </div>
+    </div>
+
+    <script src="logo-handler.js"></script>
+    <script src="dashboard.js"></script>
+  </body>
+</html>
+
