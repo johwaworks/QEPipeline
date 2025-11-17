@@ -18,33 +18,20 @@ def create_app():
     app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
     
     # CORS configuration - allow all origins including Amplify and ngrok
+    # Note: flask-cors handles CORS headers automatically, so we don't need to add them manually
     CORS(app, 
          origins="*", 
          supports_credentials=True,
-         allow_headers=["Content-Type", "Authorization", "ngrok-skip-browser-warning"],
-         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+         allow_headers=["Content-Type", "Authorization", "ngrok-skip-browser-warning", "X-Requested-With"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         max_age=3600)
     
-    # Handle OPTIONS requests for CORS preflight
+    # Handle OPTIONS requests for CORS preflight (flask-cors handles this, but we ensure it works)
     @app.before_request
     def handle_preflight():
         if request.method == "OPTIONS":
-            # Create response for preflight
-            response = jsonify({})
-            response.headers.add("Access-Control-Allow-Origin", "*")
-            response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization,ngrok-skip-browser-warning,X-Requested-With")
-            response.headers.add('Access-Control-Allow-Methods', "GET,POST,PUT,DELETE,OPTIONS")
-            response.headers.add('Access-Control-Allow-Credentials', 'true')
-            response.headers.add('Access-Control-Max-Age', '3600')
-            return response
-    
-    # Add CORS headers manually for all responses
-    @app.after_request
-    def after_request(response):
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,ngrok-skip-browser-warning')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        return response
+            # flask-cors will handle this, but we can add custom logic here if needed
+            pass
     
     # Configure upload folders
     SHOTS_UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads", "shots")
