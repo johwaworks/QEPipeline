@@ -43,12 +43,30 @@ async function apiFetch(url, options = {}) {
     headers['ngrok-skip-browser-warning'] = 'true';
   }
   
-  const response = await fetch(url, {
-    ...options,
-    headers
+  console.log('[Dashboard] apiFetch:', {
+    url: url,
+    method: options.method || 'GET',
+    headers: headers
   });
   
-  return response;
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers
+    });
+    
+    console.log('[Dashboard] apiFetch response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      url: response.url
+    });
+    
+    return response;
+  } catch (fetchError) {
+    console.error('[Dashboard] apiFetch error:', fetchError);
+    throw fetchError;
+  }
 }
 
 // Check if user is logged in
