@@ -16,7 +16,33 @@ def create_app():
     """Create and configure Flask app"""
     app = Flask(__name__)
     app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
-    CORS(app, origins="*", supports_credentials=True)
+    
+    # CORS configuration - allow all origins including Amplify and ngrok
+    CORS(app, 
+         origins="*", 
+         supports_credentials=True,
+         allow_headers=["Content-Type", "Authorization", "ngrok-skip-browser-warning"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+    
+    # Handle OPTIONS requests for CORS preflight
+    @app.before_request
+    def handle_preflight():
+        if request.method == "OPTIONS":
+            response = jsonify({})
+            response.headers.add("Access-Control-Allow-Origin", "*")
+            response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization,ngrok-skip-browser-warning")
+            response.headers.add('Access-Control-Allow-Methods', "GET,POST,PUT,DELETE,OPTIONS")
+            response.headers.add('Access-Control-Allow-Credentials', 'true')
+            return response
+    
+    # Add CORS headers manually for all responses
+    @app.after_request
+    def after_request(response):
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,ngrok-skip-browser-warning')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
     
     # Configure upload folders
     SHOTS_UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads", "shots")

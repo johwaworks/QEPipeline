@@ -1,5 +1,15 @@
 // API_BASE_URL is loaded from config.js
-const API_BASE_URL = window.API_BASE_URL || "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
+// Use window.API_BASE_URL directly to avoid redeclaration conflicts
+function getApiBaseUrl() {
+  if (window.API_BASE_URL) {
+    return window.API_BASE_URL;
+  }
+  // Fallback: detect environment
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const fallbackUrl = isLocal ? "http://localhost:5000" : "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
+  window.API_BASE_URL = fallbackUrl; // Set for future use
+  return fallbackUrl;
+}
 
 // Helper function to make API requests
 async function apiFetch(url, options = {}) {
@@ -9,7 +19,8 @@ async function apiFetch(url, options = {}) {
   };
   
   // Add ngrok header only if using ngrok domain
-  if (API_BASE_URL.includes('ngrok')) {
+  const apiBaseUrl = getApiBaseUrl();
+  if (apiBaseUrl.includes('ngrok')) {
     headers['ngrok-skip-browser-warning'] = 'true';
   }
   
@@ -54,6 +65,7 @@ function escapeHtml(text) {
 // Load shot details
 async function loadShot(shotId) {
   try {
+    const API_BASE_URL = getApiBaseUrl();
     const response = await apiFetch(`${API_BASE_URL}/api/shot/${shotId}`);
     
     if (!response.ok) {
@@ -131,6 +143,7 @@ async function loadThumbnail() {
   if (!currentShotId) return;
   
   try {
+    const API_BASE_URL = getApiBaseUrl();
     const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/thumbnail`);
     if (response.ok) {
       const blob = await response.blob();
@@ -259,6 +272,7 @@ async function uploadThumbnail(file) {
       }
     });
     
+    const API_BASE_URL = getApiBaseUrl();
     xhr.open("POST", `${API_BASE_URL}/api/shot/${currentShotId}/thumbnail`);
     xhr.send(formData);
     
@@ -307,6 +321,7 @@ async function handleRemoveThumbnail() {
   }
   
   try {
+      const API_BASE_URL = getApiBaseUrl();
       const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/thumbnail`, {
       method: "DELETE",
     });
@@ -424,6 +439,7 @@ async function handleResolutionSave() {
     }
     
     try {
+      const API_BASE_URL = getApiBaseUrl();
       const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/resolution`, {
         method: "PUT",
         headers: {
@@ -499,6 +515,7 @@ async function handleResolutionLockToggle() {
   const newLockState = !isCurrentlyLocked;
   
   try {
+    const API_BASE_URL = getApiBaseUrl();
     const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/resolution/lock`, {
       method: "PUT",
       headers: {
@@ -723,6 +740,7 @@ async function handleDurationSave() {
     }
     
     try {
+      const API_BASE_URL = getApiBaseUrl();
       const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/duration`, {
         method: "PUT",
         headers: {
@@ -801,6 +819,7 @@ async function handleDurationLockToggle() {
   const newLockState = !isCurrentlyLocked;
   
   try {
+    const API_BASE_URL = getApiBaseUrl();
     const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/duration/lock`, {
       method: "PUT",
       headers: {
@@ -923,6 +942,7 @@ async function handleDescriptionSave() {
     }
     
     try {
+      const API_BASE_URL = getApiBaseUrl();
       const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/description`, {
         method: "PUT",
         headers: {
@@ -993,6 +1013,7 @@ async function handleDescriptionLockToggle() {
   const newLockState = !isCurrentlyLocked;
   
   try {
+    const API_BASE_URL = getApiBaseUrl();
     const response = await apiFetch(`${API_BASE_URL}/api/shot/${currentShotId}/description/lock`, {
       method: "PUT",
       headers: {

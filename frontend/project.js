@@ -1,5 +1,15 @@
 // API_BASE_URL is loaded from config.js
-const API_BASE_URL = window.API_BASE_URL || "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
+// Use window.API_BASE_URL directly to avoid redeclaration conflicts
+function getApiBaseUrl() {
+  if (window.API_BASE_URL) {
+    return window.API_BASE_URL;
+  }
+  // Fallback: detect environment
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const fallbackUrl = isLocal ? "http://localhost:5000" : "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
+  window.API_BASE_URL = fallbackUrl; // Set for future use
+  return fallbackUrl;
+}
 
 // Helper function to make API requests
 async function apiFetch(url, options = {}) {
@@ -9,7 +19,8 @@ async function apiFetch(url, options = {}) {
   };
   
   // Add ngrok header only if using ngrok domain
-  if (API_BASE_URL.includes('ngrok')) {
+  const apiBaseUrl = getApiBaseUrl();
+  if (apiBaseUrl.includes('ngrok')) {
     headers['ngrok-skip-browser-warning'] = 'true';
   }
   
@@ -46,6 +57,7 @@ function getProjectIdFromURL() {
 // Load project details
 async function loadProject(projectId) {
   try {
+    const API_BASE_URL = getApiBaseUrl();
     const response = await apiFetch(`${API_BASE_URL}/api/project/${projectId}`);
     
     if (!response.ok) {
@@ -243,6 +255,7 @@ async function loadWorkers() {
     // Get active users to check worker status
     let activeUsers = [];
     try {
+      const API_BASE_URL = getApiBaseUrl();
       const activeResponse = await apiFetch(`${API_BASE_URL}/api/users/active?minutes=5`);
       if (activeResponse.ok) {
         const activeResult = await activeResponse.json();
@@ -255,6 +268,7 @@ async function loadWorkers() {
     // Get current user's partners to check if worker is a partner
     let currentUserPartners = [];
     try {
+      const API_BASE_URL = getApiBaseUrl();
       const partnersResponse = await apiFetch(`${API_BASE_URL}/api/users/${currentUsername}/partners`);
       if (partnersResponse.ok) {
         const partnersResult = await partnersResponse.json();
@@ -348,6 +362,7 @@ async function loadShots(projectId) {
     }
     
     console.log("Loading shots for project:", projectId);
+    const API_BASE_URL = getApiBaseUrl();
     const response = await apiFetch(`${API_BASE_URL}/api/project/${projectId}/shots`);
     
     if (!response.ok) {
@@ -462,6 +477,7 @@ async function handleShotCreation(event) {
   setStatus(statusEl, "Creating shot...", "");
   
   try {
+    const API_BASE_URL = getApiBaseUrl();
     const response = await apiFetch(`${API_BASE_URL}/api/project/${currentProjectId}/shots`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -631,6 +647,7 @@ async function handleAddWorkers(event) {
   
   try {
     const username = localStorage.getItem("qepipeline_username");
+    const API_BASE_URL = getApiBaseUrl();
     const response = await apiFetch(`${API_BASE_URL}/api/project/${currentProjectId}/workers`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -676,6 +693,7 @@ async function handleRemoveWorker(username) {
     const updatedWorkers = currentWorkers.filter(w => w !== username);
     
     const username = localStorage.getItem("qepipeline_username");
+    const API_BASE_URL = getApiBaseUrl();
     const response = await apiFetch(`${API_BASE_URL}/api/project/${currentProjectId}/workers`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -722,6 +740,7 @@ async function handleDeleteRequest(event) {
   setStatus(statusEl, "Submitting deletion request...", "");
   
   try {
+    const API_BASE_URL = getApiBaseUrl();
     const response = await apiFetch(`${API_BASE_URL}/api/project/${currentProjectId}/delete`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -754,6 +773,7 @@ async function handleDeleteRequest(event) {
 // Load users for edit project modal
 async function loadUsers() {
   try {
+    const API_BASE_URL = getApiBaseUrl();
     const response = await apiFetch(`${API_BASE_URL}/api/users`);
     if (!response.ok) {
       throw new Error("Failed to load users");

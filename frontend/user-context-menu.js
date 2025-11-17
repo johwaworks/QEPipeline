@@ -172,15 +172,28 @@ async function addUserPartner(username) {
   }
   
   try {
-    const API_BASE_URL = window.API_BASE_URL || 'https://unscrupulous-kimbra-headstrong.ngrok-free.dev';
+    // Get API_BASE_URL with fallback
+    function getApiBaseUrl() {
+      if (window.API_BASE_URL) {
+        return window.API_BASE_URL;
+      }
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      return isLocal ? "http://localhost:5000" : "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
+    }
+    const API_BASE_URL = getApiBaseUrl();
     
     // Helper function for API calls
     async function apiFetch(url, options = {}) {
       const headers = {
-        'ngrok-skip-browser-warning': 'true',
         'Content-Type': 'application/json',
         ...options.headers
       };
+      
+      // Add ngrok header only if using ngrok domain
+      if (API_BASE_URL.includes('ngrok')) {
+        headers['ngrok-skip-browser-warning'] = 'true';
+      }
+      
       return fetch(url, { ...options, headers });
     }
     
@@ -228,15 +241,28 @@ async function removeUserPartner(username) {
   }
   
   try {
-    const API_BASE_URL = window.API_BASE_URL || 'https://unscrupulous-kimbra-headstrong.ngrok-free.dev';
+    // Get API_BASE_URL with fallback
+    function getApiBaseUrl() {
+      if (window.API_BASE_URL) {
+        return window.API_BASE_URL;
+      }
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      return isLocal ? "http://localhost:5000" : "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
+    }
+    const API_BASE_URL = getApiBaseUrl();
     
     // Helper function for API calls
     async function apiFetch(url, options = {}) {
       const headers = {
-        'ngrok-skip-browser-warning': 'true',
         'Content-Type': 'application/json',
         ...options.headers
       };
+      
+      // Add ngrok header only if using ngrok domain
+      if (API_BASE_URL.includes('ngrok')) {
+        headers['ngrok-skip-browser-warning'] = 'true';
+      }
+      
       return fetch(url, { ...options, headers });
     }
     

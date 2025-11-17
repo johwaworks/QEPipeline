@@ -1,5 +1,15 @@
 // API_BASE_URL is loaded from config.js
-const API_BASE_URL = window.API_BASE_URL || "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
+// Use window.API_BASE_URL directly to avoid redeclaration conflicts
+function getApiBaseUrl() {
+  if (window.API_BASE_URL) {
+    return window.API_BASE_URL;
+  }
+  // Fallback: detect environment
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const fallbackUrl = isLocal ? "http://localhost:5000" : "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
+  window.API_BASE_URL = fallbackUrl; // Set for future use
+  return fallbackUrl;
+}
 
 // Helper function to make API requests
 async function apiFetch(url, options = {}) {
@@ -63,6 +73,7 @@ async function loadProfile(username) {
   const profileContent = document.getElementById("profile-content");
   
   try {
+    const API_BASE_URL = getApiBaseUrl();
     const response = await apiFetch(`${API_BASE_URL}/api/profile?username=${encodeURIComponent(username)}`);
     
     if (!response.ok && response.status === 0) {

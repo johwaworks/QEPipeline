@@ -21,10 +21,15 @@ async function apiFetch(url, options = {}) {
   }
   
   const headers = {
-    'ngrok-skip-browser-warning': 'true',
     'Content-Type': 'application/json',
     ...options.headers
   };
+  
+  // Add ngrok header only if using ngrok domain
+  const apiBaseUrl = getApiBaseUrl();
+  if (apiBaseUrl.includes('ngrok')) {
+    headers['ngrok-skip-browser-warning'] = 'true';
+  }
   
   const response = await fetch(url, {
     ...options,

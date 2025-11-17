@@ -1,6 +1,30 @@
-// API_BASE_URL is loaded from config.js
-// It will be available as window.API_BASE_URL
-const API_BASE_URL = window.API_BASE_URL || "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
+// API_BASE_URL is loaded from config.js (which should be loaded before this script)
+// Use window.API_BASE_URL if available, otherwise fallback to environment detection
+function getApiBaseUrl() {
+  if (window.API_BASE_URL) {
+    console.log('[Dashboard] Using window.API_BASE_URL:', window.API_BASE_URL);
+    return window.API_BASE_URL;
+  }
+  // Fallback: detect environment
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const fallbackUrl = isLocal ? "http://localhost:5000" : "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
+  console.log('[Dashboard] window.API_BASE_URL not found, using fallback:', fallbackUrl);
+  // Set it for future use
+  window.API_BASE_URL = fallbackUrl;
+  return fallbackUrl;
+}
+
+// Ensure window.API_BASE_URL is set
+if (!window.API_BASE_URL) {
+  window.API_BASE_URL = getApiBaseUrl();
+}
+console.log('[Dashboard] Final API_BASE_URL:', window.API_BASE_URL);
+
+// Create a local reference to avoid redeclaration errors
+// Use a function to get the current API_BASE_URL value
+function getAPIBaseURL() {
+  return window.API_BASE_URL || getApiBaseUrl();
+}
 
 // Helper function to make API requests
 async function apiFetch(url, options = {}) {
@@ -10,7 +34,8 @@ async function apiFetch(url, options = {}) {
   };
   
   // Add ngrok header only if using ngrok domain
-  if (API_BASE_URL.includes('ngrok')) {
+  const apiBaseUrl = getAPIBaseURL();
+  if (apiBaseUrl.includes('ngrok')) {
     headers['ngrok-skip-browser-warning'] = 'true';
   }
   
@@ -55,14 +80,27 @@ async function loadProjects(username) {
   const projectsList = document.getElementById("projects-list");
   
   try {
+    // Debug: Log API_BASE_URL
+    const API_BASE_URL = getAPIBaseURL();
+    console.log('[Dashboard] Loading projects for user:', username);
+    console.log('[Dashboard] API_BASE_URL:', API_BASE_URL);
+    console.log('[Dashboard] window.API_BASE_URL:', window.API_BASE_URL);
+    
+    const url = `${API_BASE_URL}/api/projects?username=${encodeURIComponent(username)}`;
+    console.log('[Dashboard] Requesting URL:', url);
+    
     // Get projects where user is in workers list
-    const response = await apiFetch(`${API_BASE_URL}/api/projects?username=${encodeURIComponent(username)}`);
+    const response = await apiFetch(url);
+    
+    console.log('[Dashboard] Response status:', response.status);
+    console.log('[Dashboard] Response ok:', response.ok);
     
     if (!response.ok && response.status === 0) {
       throw new Error("Cannot connect to server. Please check if the backend is running.");
     }
     
     const result = await response.json();
+    console.log('[Dashboard] Response result:', result);
     
     if (!response.ok) {
       throw new Error(result.error || "Failed to load projects");
@@ -104,6 +142,15 @@ async function loadProjects(username) {
     });
     
   } catch (error) {
+    console.error('[Dashboard] Error loading projects:', error);
+    const currentApiUrl = getAPIBaseURL();
+    console.error('[Dashboard] Error details:', {
+      message: error.message,
+      stack: error.stack,
+      API_BASE_URL: currentApiUrl,
+      window_API_BASE_URL: window.API_BASE_URL
+    });
+    
     let errorMessage = error.message;
     if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError")) {
       errorMessage = "Cannot connect to server. Please check if the backend is running.";
@@ -112,6 +159,7 @@ async function loadProjects(username) {
       <div class="empty-state">
         <h3>Error</h3>
         <p>${errorMessage}</p>
+        <p style="font-size: 12px; color: #888; margin-top: 10px;">API URL: ${currentApiUrl}</p>
       </div>
     `;
     console.error("Load projects error:", error);
@@ -155,6 +203,7 @@ function getStatusColor(status) {
 // Load users for project creation
 async function loadUsers() {
   try {
+    const API_BASE_URL = getAPIBaseURL();
     const response = await apiFetch(`${API_BASE_URL}/api/users`);
     if (!response.ok) {
       throw new Error("Failed to load users");
@@ -339,6 +388,7 @@ async function handleProjectCreation(event) {
   setStatus(statusEl, "Creating project...", "");
   
   try {
+    const API_BASE_URL = getAPIBaseURL();
     const response = await apiFetch(`${API_BASE_URL}/api/projects`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -386,6 +436,7 @@ function setStatus(element, message, type = "") {
 // Check if user is admin
 async function checkAdminStatus(username) {
   try {
+    const API_BASE_URL = getAPIBaseURL();
     const response = await apiFetch(`${API_BASE_URL}/api/profile?username=${encodeURIComponent(username)}`);
     if (response.ok) {
       const result = await response.json();
@@ -610,6 +661,7 @@ async function loadActiveUsers() {
   }
   
   try {
+    const API_BASE_URL = getAPIBaseURL();
     const response = await apiFetch(`${API_BASE_URL}/api/users/active?minutes=5`);
     
     if (!response.ok) {
@@ -656,6 +708,7 @@ async function updateUserActivity() {
   }
   
   try {
+    const API_BASE_URL = getAPIBaseURL();
     await apiFetch(`${API_BASE_URL}/api/users/activity`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -678,6 +731,7 @@ async function loadPartners(username) {
   
   try {
     // Get partners
+    const API_BASE_URL = getAPIBaseURL();
     const partnersResponse = await apiFetch(`${API_BASE_URL}/api/users/${username}/partners`);
     
     const currentUsername = localStorage.getItem("qepipeline_username");
@@ -700,6 +754,7 @@ async function loadPartners(username) {
     if (!currentUserInPartners) {
       try {
         // Get current user info
+        const API_BASE_URL = getAPIBaseURL();
         const userResponse = await apiFetch(`${API_BASE_URL}/api/users/${currentUsername}`);
         if (userResponse.ok) {
           const userResult = await userResponse.json();
@@ -747,6 +802,7 @@ async function loadPartners(username) {
     // Get active users to check partner status
     let activeUsers = [];
     try {
+      const API_BASE_URL = getAPIBaseURL();
       const activeResponse = await fetch(`${API_BASE_URL}/api/users/active?minutes=5`);
       if (activeResponse.ok) {
         const activeResult = await activeResponse.json();
@@ -863,6 +919,7 @@ async function searchUsersForPartner(query) {
   try {
     // Load all users if not already loaded
     if (allUsersList.length === 0) {
+      const API_BASE_URL = getAPIBaseURL();
       const response = await apiFetch(`${API_BASE_URL}/api/users`);
       if (!response.ok) {
         throw new Error("Failed to load users");
@@ -877,6 +934,7 @@ async function searchUsersForPartner(query) {
     let currentPartners = [];
     let pendingRequests = [];
     try {
+      const API_BASE_URL = getAPIBaseURL();
       const partnersResponse = await apiFetch(`${API_BASE_URL}/api/users/${currentUsername}/partners`);
       if (partnersResponse.ok) {
         const partnersResult = await partnersResponse.json();
@@ -963,6 +1021,7 @@ async function addPartner(currentUsername, partnerUsername) {
   try {
     setStatus(statusMessage, "Sending partner request...", "info");
     
+    const API_BASE_URL = getAPIBaseURL();
     const response = await apiFetch(`${API_BASE_URL}/api/users/${currentUsername}/partners/requests`, {
       method: "POST",
       headers: {
@@ -996,6 +1055,7 @@ async function addPartner(currentUsername, partnerUsername) {
 // Remove partner
 async function removePartner(currentUsername, partnerUsername) {
   try {
+    const API_BASE_URL = getAPIBaseURL();
     const response = await apiFetch(`${API_BASE_URL}/api/users/${currentUsername}/partners/${partnerUsername}`, {
       method: "DELETE",
     });
@@ -1023,6 +1083,7 @@ async function loadPartnerRequests(username) {
   }
   
   try {
+    const API_BASE_URL = getAPIBaseURL();
     const response = await apiFetch(`${API_BASE_URL}/api/users/${username}/partners/requests`);
     
     if (!response.ok) {
@@ -1095,6 +1156,7 @@ async function loadPartnerRequests(username) {
 // Accept partner request
 async function acceptPartnerRequest(username, fromUsername) {
   try {
+    const API_BASE_URL = getAPIBaseURL();
     const response = await apiFetch(`${API_BASE_URL}/api/users/${username}/partners/requests/${fromUsername}/accept`, {
       method: "POST",
       headers: {
@@ -1120,6 +1182,7 @@ async function acceptPartnerRequest(username, fromUsername) {
 // Reject partner request
 async function rejectPartnerRequest(username, fromUsername) {
   try {
+    const API_BASE_URL = getAPIBaseURL();
     const response = await apiFetch(`${API_BASE_URL}/api/users/${username}/partners/requests/${fromUsername}/reject`, {
       method: "POST",
       headers: {
@@ -1144,6 +1207,7 @@ async function rejectPartnerRequest(username, fromUsername) {
 // Load notifications
 async function loadNotifications(username) {
   try {
+    const API_BASE_URL = getAPIBaseURL();
     const response = await apiFetch(`${API_BASE_URL}/api/users/${username}/partners/requests`);
     
     if (!response.ok) {
