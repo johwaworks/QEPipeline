@@ -1217,10 +1217,46 @@ async function loadChatMessages() {
       }
       
       renderMessages();
+      
+      // Mark messages as read in backend when opening chat room
+      await markChatRoomAsRead(chatState.currentChatRoomId);
     }
     
   } catch (error) {
     console.error("Error loading messages:", error);
+  }
+}
+
+// Mark chat room messages as read
+async function markChatRoomAsRead(chatRoomId) {
+  if (!chatRoomId) {
+    return;
+  }
+  
+  const currentUser = chatState.currentUser;
+  if (!currentUser) {
+    return;
+  }
+  
+  try {
+    const response = await apiFetch(`${getApiBaseUrl()}/api/chat-room/${chatRoomId}/messages/read`, {
+      method: "PUT"
+    });
+    
+    if (response.ok) {
+      console.log("✅ Marked chat room as read:", chatRoomId);
+      
+      // Update unreadCount in chatState to ensure it stays at 0
+      const chatRoomIndex = chatState.chatRooms.findIndex(room => room._id === chatRoomId);
+      if (chatRoomIndex >= 0) {
+        chatState.chatRooms[chatRoomIndex].unreadCount = 0;
+        renderChatRoomsList();
+      }
+    } else {
+      console.warn("Failed to mark chat room as read:", response.status);
+    }
+  } catch (error) {
+    console.error("Error marking chat room as read:", error);
   }
 }
 
@@ -1975,7 +2011,7 @@ async function checkForChatRoomUpdates() {
           const unreadCountChanged = (existingRoom.unreadCount || 0) !== (updatedRoom.unreadCount || 0);
           
           // Don't update unreadCount if this is the currently open chat room
-          // (user has already read the messages)
+          // (user has already read the messages and backend should have marked them as read)
           const isCurrentlyOpen = chatState.currentChatRoomId === existingRoom._id;
           
           if (lastMessageChanged || (unreadCountChanged && !isCurrentlyOpen)) {
@@ -1986,9 +2022,14 @@ async function checkForChatRoomUpdates() {
               lastMessage: updatedRoom.lastMessage || existingRoom.lastMessage,
               lastMessageAuthor: updatedRoom.lastMessageAuthor || existingRoom.lastMessageAuthor,
               // If this is the currently open room, keep unreadCount at 0 (user is reading it)
-              // Otherwise, update from backend
+              // Otherwise, update from backend (backend should have 0 if messages were marked as read)
               unreadCount: isCurrentlyOpen ? 0 : (updatedRoom.unreadCount || 0)
             };
+            hasUpdates = true;
+          } else if (isCurrentlyOpen && updatedRoom.unreadCount > 0) {
+            // If this is currently open but backend still shows unread, force it to 0
+            // (This shouldn't happen if markChatRoomAsRead worked, but just in case)
+            chatState.chatRooms[existingIndex].unreadCount = 0;
             hasUpdates = true;
           }
         } else {
