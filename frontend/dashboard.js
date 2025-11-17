@@ -94,13 +94,25 @@ async function loadProjects(username) {
     console.log('[Dashboard] Requesting URL:', url);
     
     // Get projects where user is in workers list
-    const response = await apiFetch(url);
+    let response;
+    try {
+      response = await apiFetch(url);
+    } catch (fetchError) {
+      console.error('[Dashboard] Fetch error:', fetchError);
+      throw new Error(`Network error: ${fetchError.message}. Please check if the backend is running and ngrok is active.`);
+    }
     
     console.log('[Dashboard] Response status:', response.status);
     console.log('[Dashboard] Response ok:', response.ok);
-    
-    if (!response.ok && response.status === 0) {
-      throw new Error("Cannot connect to server. Please check if the backend is running.");
+    console.log('[Dashboard] Response headers:', Object.fromEntries(response.headers.entries()));
+
+    if (!response.ok) {
+      if (response.status === 0) {
+        throw new Error("Cannot connect to server. Please check if the backend is running and ngrok is active.");
+      }
+      const errorText = await response.text();
+      console.error('[Dashboard] Error response:', errorText);
+      throw new Error(`Server error: ${response.status} ${response.statusText}. ${errorText}`);
     }
     
     const result = await response.json();
@@ -156,14 +168,26 @@ async function loadProjects(username) {
     });
     
     let errorMessage = error.message;
+    let detailedError = '';
+    
     if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError")) {
-      errorMessage = "Cannot connect to server. Please check if the backend is running.";
+      errorMessage = "Cannot connect to server. Please check:";
+      detailedError = `
+        <ul style="text-align: left; margin-top: 10px;">
+          <li>Backend server is running (python app.py)</li>
+          <li>ngrok is running (ngrok http 5000)</li>
+          <li>ngrok URL matches: ${currentApiUrl}</li>
+        </ul>
+      `;
     }
+    
     projectsList.innerHTML = `
       <div class="empty-state">
         <h3>Error</h3>
         <p>${errorMessage}</p>
+        ${detailedError}
         <p style="font-size: 12px; color: #888; margin-top: 10px;">API URL: ${currentApiUrl}</p>
+        <p style="font-size: 11px; color: #666; margin-top: 5px;">Error details: ${error.message}</p>
       </div>
     `;
     console.error("Load projects error:", error);
