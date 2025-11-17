@@ -1653,6 +1653,13 @@ def create_app():
                         message["created_at"] = message["created_at"].isoformat()
                     if "updated_at" in message:
                         message["updated_at"] = message["updated_at"].isoformat()
+                    # Ensure read_by field exists and is properly formatted
+                    if "read_by" not in message:
+                        message["read_by"] = []
+                    elif isinstance(message.get("read_by"), list):
+                        message["read_by"] = [str(r) for r in message["read_by"]]
+                    else:
+                        message["read_by"] = []
                 
                 return jsonify({
                     "message": message,

@@ -1855,6 +1855,11 @@ async function sendMessage() {
     const result = await response.json();
     
     if (result.message) {
+      // Ensure read_by field exists in the message
+      if (!result.message.read_by) {
+        result.message.read_by = [];
+      }
+      
       // Update last message time and content for this chat room immediately
       const chatRoomIndex = chatState.chatRooms.findIndex(room => room._id === chatState.currentChatRoomId);
       if (chatRoomIndex >= 0 && result.message.created_at) {
@@ -1866,7 +1871,14 @@ async function sendMessage() {
         renderChatRoomsList();
       }
       
-      // Reload all messages to ensure consistency
+      // Add the new message to the messages array immediately (optimistic update)
+      // This ensures read_by field is available for rendering
+      if (result.message._id && !chatState.messages.some(m => m._id === result.message._id)) {
+        chatState.messages.push(result.message);
+        renderMessages();
+      }
+      
+      // Reload all messages to ensure consistency (this will update read_by status)
       await loadChatMessages();
     }
     
@@ -1942,12 +1954,31 @@ async function checkForNewMessages() {
     const result = await response.json();
     
     if (result.messages && Array.isArray(result.messages)) {
+      // Ensure all messages have read_by field
+      result.messages.forEach(msg => {
+        if (!msg.read_by) {
+          msg.read_by = [];
+        } else if (!Array.isArray(msg.read_by)) {
+          msg.read_by = [];
+        }
+      });
+      
       // Compare message count to detect new messages
       const currentMessageCount = chatState.messages.length;
       const newMessageCount = result.messages.length;
       
-      if (newMessageCount > currentMessageCount) {
-        // New messages detected, reload messages
+      // Check if messages have changed (new messages or read_by updates)
+      const messagesChanged = newMessageCount !== currentMessageCount ||
+        result.messages.some((msg, idx) => {
+          const currentMsg = chatState.messages[idx];
+          if (!currentMsg) return true;
+          const currentReadBy = (currentMsg.read_by || []).join(',');
+          const newReadBy = (msg.read_by || []).join(',');
+          return currentReadBy !== newReadBy;
+        });
+      
+      if (messagesChanged) {
+        // Messages changed (new messages or read status updates), reload messages
         chatState.messages = result.messages;
         renderMessages();
         
