@@ -3,23 +3,31 @@ Configuration file for QEPipeline backend
 """
 import os
 
-# MongoDB Configuration
-# IMPORTANT: Set MONGODB_URI as an environment variable for security
-# Do not hardcode credentials in source code
-MONGODB_URI = os.getenv("MONGODB_URI")
-if not MONGODB_URI:
-    raise ValueError("MONGODB_URI environment variable is not set. Please set it before running the application.")
+# Load environment variables from .env file if it exists
+try:
+    from dotenv import load_dotenv
+    from pathlib import Path
+    # Load .env file from project root (parent directory)
+    backend_dir = Path(__file__).parent
+    project_root = backend_dir.parent
+    env_path = project_root / '.env'
+    if env_path.exists():
+        load_dotenv(env_path)
+except ImportError:
+    # python-dotenv not installed, skip loading .env file
+    pass
+except Exception:
+    # Error loading .env file, continue with system environment variables
+    pass
 
+# MongoDB Configuration
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb+srv://johwa:UDWScW728969d9Q7@cluster0.rrxr0hw.mongodb.net/?retryWrites=true&w=majority")
 MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "qepipeline")
 
 # Admin Configuration
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
-if not ADMIN_PASSWORD:
-    raise ValueError("ADMIN_PASSWORD environment variable is not set. Please set it before running the application.")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "NSRM0902@")
 
 # Flask Configuration
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
-    raise ValueError("SECRET_KEY environment variable is not set. Please set it before running the application.")
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 

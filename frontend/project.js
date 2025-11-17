@@ -1,12 +1,17 @@
-const API_BASE_URL = "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
+// API_BASE_URL is loaded from config.js
+const API_BASE_URL = window.API_BASE_URL || "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
 
-// Helper function to make API requests with ngrok headers
+// Helper function to make API requests
 async function apiFetch(url, options = {}) {
   const headers = {
-    'ngrok-skip-browser-warning': 'true',
     'Content-Type': 'application/json',
     ...options.headers
   };
+  
+  // Add ngrok header only if using ngrok domain
+  if (API_BASE_URL.includes('ngrok')) {
+    headers['ngrok-skip-browser-warning'] = 'true';
+  }
   
   const response = await fetch(url, {
     ...options,

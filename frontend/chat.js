@@ -7,13 +7,18 @@ function getApiBaseUrl() {
   return "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
 }
 
-// Helper function to make API requests with ngrok headers
+// Helper function to make API requests
 async function apiFetch(url, options = {}) {
   const headers = {
-    'ngrok-skip-browser-warning': 'true',
     'Content-Type': 'application/json',
     ...options.headers
   };
+  
+  // Add ngrok header only if using ngrok domain
+  const apiBaseUrl = getApiBaseUrl();
+  if (apiBaseUrl.includes('ngrok')) {
+    headers['ngrok-skip-browser-warning'] = 'true';
+  }
   
   const response = await fetch(url, {
     ...options,
@@ -1969,14 +1974,20 @@ async function checkForChatRoomUpdates() {
           const lastMessageChanged = existingRoom.lastMessageTime !== updatedRoom.lastMessageTime;
           const unreadCountChanged = (existingRoom.unreadCount || 0) !== (updatedRoom.unreadCount || 0);
           
-          if (lastMessageChanged || unreadCountChanged) {
+          // Don't update unreadCount if this is the currently open chat room
+          // (user has already read the messages)
+          const isCurrentlyOpen = chatState.currentChatRoomId === existingRoom._id;
+          
+          if (lastMessageChanged || (unreadCountChanged && !isCurrentlyOpen)) {
             // Update room data (preserve all existing fields, only update changed ones)
             chatState.chatRooms[existingIndex] = {
               ...existingRoom,
               lastMessageTime: updatedRoom.lastMessageTime || existingRoom.lastMessageTime,
               lastMessage: updatedRoom.lastMessage || existingRoom.lastMessage,
               lastMessageAuthor: updatedRoom.lastMessageAuthor || existingRoom.lastMessageAuthor,
-              unreadCount: updatedRoom.unreadCount || 0
+              // If this is the currently open room, keep unreadCount at 0 (user is reading it)
+              // Otherwise, update from backend
+              unreadCount: isCurrentlyOpen ? 0 : (updatedRoom.unreadCount || 0)
             };
             hasUpdates = true;
           }

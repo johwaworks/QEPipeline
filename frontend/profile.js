@@ -1,12 +1,17 @@
-const API_BASE_URL = "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
+// API_BASE_URL is loaded from config.js
+const API_BASE_URL = window.API_BASE_URL || "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
 
-// Helper function to make API requests with ngrok headers
+// Helper function to make API requests
 async function apiFetch(url, options = {}) {
   const headers = {
-    'ngrok-skip-browser-warning': 'true',
     'Content-Type': 'application/json',
     ...options.headers
   };
+  
+  // Add ngrok header only if using ngrok domain
+  if (API_BASE_URL.includes('ngrok')) {
+    headers['ngrok-skip-browser-warning'] = 'true';
+  }
   
   const response = await fetch(url, {
     ...options,
@@ -61,7 +66,7 @@ async function loadProfile(username) {
     const response = await apiFetch(`${API_BASE_URL}/api/profile?username=${encodeURIComponent(username)}`);
     
     if (!response.ok && response.status === 0) {
-      throw new Error("Cannot connect to backend server. Please make sure the backend is running on http://localhost:5000");
+      throw new Error("Cannot connect to server. Please check if the backend is running.");
     }
     
     const result = await response.json();
@@ -107,7 +112,7 @@ async function loadProfile(username) {
   } catch (error) {
     let errorMessage = error.message;
     if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError")) {
-      errorMessage = "Cannot connect to server. Please check if the backend is running on http://localhost:5000";
+      errorMessage = "Cannot connect to server. Please check if the backend is running.";
     }
     profileContent.innerHTML = `
       <div class="error">
