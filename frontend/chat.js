@@ -1240,7 +1240,13 @@ async function markChatRoomAsRead(chatRoomId) {
   
   try {
     const response = await apiFetch(`${getApiBaseUrl()}/api/chat-room/${chatRoomId}/messages/read`, {
-      method: "PUT"
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        username: currentUser
+      })
     });
     
     if (response.ok) {
