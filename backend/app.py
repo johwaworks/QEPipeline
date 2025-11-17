@@ -28,11 +28,13 @@ def create_app():
     @app.before_request
     def handle_preflight():
         if request.method == "OPTIONS":
+            # Create response for preflight
             response = jsonify({})
             response.headers.add("Access-Control-Allow-Origin", "*")
-            response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization,ngrok-skip-browser-warning")
+            response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization,ngrok-skip-browser-warning,X-Requested-With")
             response.headers.add('Access-Control-Allow-Methods', "GET,POST,PUT,DELETE,OPTIONS")
             response.headers.add('Access-Control-Allow-Credentials', 'true')
+            response.headers.add('Access-Control-Max-Age', '3600')
             return response
     
     # Add CORS headers manually for all responses

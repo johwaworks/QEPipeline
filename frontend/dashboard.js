@@ -1,30 +1,34 @@
-// API_BASE_URL is loaded from config.js (which should be loaded before this script)
-// Use window.API_BASE_URL if available, otherwise fallback to environment detection
-function getApiBaseUrl() {
-  if (window.API_BASE_URL) {
-    console.log('[Dashboard] Using window.API_BASE_URL:', window.API_BASE_URL);
-    return window.API_BASE_URL;
+// Dashboard functionality - wrapped in IIFE to avoid variable conflicts
+(function() {
+  'use strict';
+  
+  // API_BASE_URL is loaded from config.js (which should be loaded before this script)
+  // Use window.API_BASE_URL if available, otherwise fallback to environment detection
+  function getApiBaseUrl() {
+    if (window.API_BASE_URL) {
+      console.log('[Dashboard] Using window.API_BASE_URL:', window.API_BASE_URL);
+      return window.API_BASE_URL;
+    }
+    // Fallback: detect environment
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const fallbackUrl = isLocal ? "http://localhost:5000" : "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
+    console.log('[Dashboard] window.API_BASE_URL not found, using fallback:', fallbackUrl);
+    // Set it for future use
+    window.API_BASE_URL = fallbackUrl;
+    return fallbackUrl;
   }
-  // Fallback: detect environment
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const fallbackUrl = isLocal ? "http://localhost:5000" : "https://unscrupulous-kimbra-headstrong.ngrok-free.dev";
-  console.log('[Dashboard] window.API_BASE_URL not found, using fallback:', fallbackUrl);
-  // Set it for future use
-  window.API_BASE_URL = fallbackUrl;
-  return fallbackUrl;
-}
 
-// Ensure window.API_BASE_URL is set
-if (!window.API_BASE_URL) {
-  window.API_BASE_URL = getApiBaseUrl();
-}
-console.log('[Dashboard] Final API_BASE_URL:', window.API_BASE_URL);
+  // Ensure window.API_BASE_URL is set
+  if (!window.API_BASE_URL) {
+    window.API_BASE_URL = getApiBaseUrl();
+  }
+  console.log('[Dashboard] Final API_BASE_URL:', window.API_BASE_URL);
 
-// Create a local reference to avoid redeclaration errors
-// Use a function to get the current API_BASE_URL value
-function getAPIBaseURL() {
-  return window.API_BASE_URL || getApiBaseUrl();
-}
+  // Create a local reference to avoid redeclaration errors
+  // Use a function to get the current API_BASE_URL value
+  function getAPIBaseURL() {
+    return window.API_BASE_URL || getApiBaseUrl();
+  }
 
 // Helper function to make API requests
 async function apiFetch(url, options = {}) {
@@ -1333,4 +1337,6 @@ function closeNotificationDropdown() {
 
 // Run when page loads
 document.addEventListener("DOMContentLoaded", initDashboard);
+
+})(); // End of IIFE
 
