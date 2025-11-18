@@ -770,11 +770,17 @@ async function openChatRoom(chatRoomId, chatRoomData = null) {
     const existingIndex = chatState.chatRooms.findIndex(room => room._id === chatRoomId);
     if (existingIndex === -1 && chatRoom) {
       // Add to beginning of list
+      chatRoom.unreadCount = 0; // Immediately set unreadCount to 0 when opening
       chatState.chatRooms.unshift(chatRoom);
       console.log("➕ Added chat room to list:", chatRoom);
     } else if (existingIndex >= 0 && chatRoom) {
       // Update existing chat room data
-      chatState.chatRooms[existingIndex] = chatRoom;
+      // Immediately set unreadCount to 0 when opening (user is viewing it)
+      chatRoom.unreadCount = 0;
+      chatState.chatRooms[existingIndex] = {
+        ...chatRoom,
+        unreadCount: 0 // Force unreadCount to 0
+      };
       console.log("🔄 Updated chat room in list:", chatRoom);
     }
     
@@ -2060,12 +2066,23 @@ async function checkForChatRoomUpdates() {
               lastMessageAuthor: updatedRoom.lastMessageAuthor || existingRoom.lastMessageAuthor,
               // If this is the currently open room, keep unreadCount at 0 (user is reading it)
               // Otherwise, update from backend (backend should have 0 if messages were marked as read)
-              unreadCount: isCurrentlyOpen ? 0 : (updatedRoom.unreadCount || 0)
+              // BUT: If the existing room already has unreadCount = 0 and we're not currently viewing it,
+              // don't update it back to a non-zero value (user already read it)
+              unreadCount: isCurrentlyOpen ? 0 : (
+                (existingRoom.unreadCount === 0 && updatedRoom.unreadCount > 0) 
+                  ? 0  // Keep at 0 if user already read it (even if backend hasn't updated yet)
+                  : (updatedRoom.unreadCount || 0)
+              )
             };
             hasUpdates = true;
           } else if (isCurrentlyOpen && updatedRoom.unreadCount > 0) {
             // If this is currently open but backend still shows unread, force it to 0
             // (This shouldn't happen if markChatRoomAsRead worked, but just in case)
+            chatState.chatRooms[existingIndex].unreadCount = 0;
+            hasUpdates = true;
+          } else if (!isCurrentlyOpen && existingRoom.unreadCount === 0 && updatedRoom.unreadCount > 0) {
+            // If user already read this room (unreadCount = 0), don't update it back to non-zero
+            // This prevents the badge from reappearing when switching to another chat
             chatState.chatRooms[existingIndex].unreadCount = 0;
             hasUpdates = true;
           }
