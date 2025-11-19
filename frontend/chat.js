@@ -28,26 +28,51 @@ async function apiFetch(url, options = {}) {
   return response;
 }
 
-// Chat state
-let chatState = {
-  isOpen: false,
-  isMaximized: false,
-  isResizing: false,
-  chatRooms: [], // All chat rooms (project, shot, personal)
-  currentChatRoomId: null,
-  currentChatRoom: null,
-  messages: [],
-  currentUser: null,
-  lastMessageCheck: null, // Timestamp of last message check
-  pollingInterval: null, // Interval ID for polling
-  isPolling: false // Flag to prevent multiple polling intervals
-};
+// Chat state - Use window.chatState to persist across page navigations
+if (!window.chatState) {
+  window.chatState = {
+    isOpen: false,
+    isMaximized: false,
+    isResizing: false,
+    chatRooms: [], // All chat rooms (project, shot, personal)
+    currentChatRoomId: null,
+    currentChatRoom: null,
+    messages: [],
+    currentUser: null,
+    lastMessageCheck: null, // Timestamp of last message check
+    pollingInterval: null, // Interval ID for polling
+    isPolling: false // Flag to prevent multiple polling intervals
+  };
+}
+
+// Reference to chatState for easier access
+const chatState = window.chatState;
 
 // Initialize chat
 function initChat() {
   const currentUser = localStorage.getItem("qepipeline_username");
   if (!currentUser) {
     console.warn("Chat: No user found, initializing anyway");
+  }
+  
+  // If user changed, reset chat state
+  if (chatState.currentUser && chatState.currentUser !== currentUser) {
+    console.log("🔄 User changed, resetting chat state");
+    window.chatState = {
+      isOpen: false,
+      isMaximized: false,
+      isResizing: false,
+      chatRooms: [],
+      currentChatRoomId: null,
+      currentChatRoom: null,
+      messages: [],
+      currentUser: null,
+      lastMessageCheck: null,
+      pollingInterval: null,
+      isPolling: false
+    };
+    // Update reference
+    Object.assign(chatState, window.chatState);
   }
   
   chatState.currentUser = currentUser || "guest";
@@ -59,8 +84,10 @@ function initChat() {
     });
   }
   
-  // Start polling for real-time updates
-  startChatPolling();
+  // Start polling for real-time updates (only if not already polling)
+  if (!chatState.isPolling) {
+    startChatPolling();
+  }
   
   // Stop polling when page is about to unload
   window.addEventListener("beforeunload", () => {
@@ -414,6 +441,34 @@ function initChat() {
   
   // Load conversations
   loadConversations();
+  
+  // Restore chat state if chat was open on previous page
+  if (chatState.isOpen) {
+    // Restore chat window visibility
+    if (chatWindow) {
+      chatWindow.classList.add("open");
+      if (toggleBtn) {
+        toggleBtn.style.display = "none";
+      }
+    }
+    
+    // Restore chat room if one was open
+    if (chatState.currentChatRoomId && chatState.chatRooms.length > 0) {
+      // Wait a bit for chat rooms to load, then restore
+      setTimeout(async () => {
+        const roomExists = chatState.chatRooms.some(room => room._id === chatState.currentChatRoomId);
+        if (roomExists) {
+          console.log("🔄 Restoring chat room:", chatState.currentChatRoomId);
+          await openChatRoom(chatState.currentChatRoomId);
+        } else {
+          console.log("⚠️ Previous chat room not found in list, clearing state");
+          chatState.currentChatRoomId = null;
+          chatState.currentChatRoom = null;
+          chatState.messages = [];
+        }
+      }, 500);
+    }
+  }
 }
 
 // Get chat room open history from localStorage
